@@ -1,12 +1,13 @@
 # GoServe
 
-A lightweight, feature-rich HTTP file server written in Go.
+A lightweight, feature-rich HTTP file server written in Go with WebDAV support.
 
 ## Features
 
 - 📁 **Directory browsing** - Clean, modern interface with file icons
 - 🔍 **Search & filter** - Real-time search with wildcard support (`*.ext`)
-- ⬆️ **File upload** - Upload files via web interface (optional)
+- ⬆️ **File upload** - Upload single or multiple files via web interface (optional)
+- 📂  **Directory upload** - Drag and drop entire folders with structure preservation (v1.1)
 - ✏️ **File management** - Rename and delete files (optional)
 - 🌓 **Dark mode** - Toggle between light and dark themes
 - 👁️ **File preview** - Preview images, text files, markdown, and code
@@ -14,6 +15,7 @@ A lightweight, feature-rich HTTP file server written in Go.
 - 🗜️ **GZIP compression** - Automatic compression for faster transfers
 - 🔒 **Authentication** - Optional user authentication with permission levels
 - 🎨 **Breadcrumb navigation** - Easy directory navigation
+- 💾 **WebDAV server** - Mount as network drive on Windows/Mac/Linux (v1.1)
 
 ## Installation
 
@@ -186,6 +188,63 @@ Click on supported file types to preview them without downloading:
 - **Markdown**: Rendered with syntax highlighting
 
 Press `ESC` or click outside to close the preview.
+
+## Directory Upload (v1.1)
+
+Upload entire folders with preserved directory structure:
+
+1. Click **"📁 Folder"** button in the toolbar
+2. Select a folder from your system
+3. Click **"↑ Upload X file(s)"** 
+4. All files and subdirectories will be uploaded
+
+Alternatively, use **"📄 Files"** to select multiple individual files.
+
+**Note:** Folder upload requires a modern browser (Chrome, Edge, Firefox 50+, Safari 11+)
+
+## WebDAV Support (v1.1)
+
+GoServe includes a built-in WebDAV server, allowing you to mount the file server as a network drive.
+
+### WebDAV URL
+
+```
+http://localhost:8080/webdav/
+```
+
+Replace `localhost:8080` with your server address and port.
+
+### Mounting as Network Drive
+
+**Windows:**
+1. Open File Explorer
+2. Right-click on **"This PC"** → **"Map network drive..."**
+3. Enter the WebDAV URL: `http://localhost:8080/webdav/`
+4. Check "Connect using different credentials" if using authentication
+5. Click **Finish**
+
+**macOS:**
+1. Open Finder
+2. Press **Cmd+K** or go to **Go** → **Connect to Server**
+3. Enter: `http://localhost:8080/webdav/`
+4. Click **Connect**
+5. Enter credentials if authentication is enabled
+
+**Linux:**
+```bash
+# Install davfs2
+sudo apt-get install davfs2
+
+# Mount the WebDAV share
+sudo mount -t davfs http://localhost:8080/webdav/ /mnt/goserve
+
+# Or add to /etc/fstab for permanent mount:
+# http://localhost:8080/webdav/ /mnt/goserve davfs user,noauto 0 0
+```
+
+**With Authentication:**
+- Use your username/password from `logins.txt`
+- WebDAV respects the same permission levels (readonly/readwrite/admin)
 
 ## Building
 

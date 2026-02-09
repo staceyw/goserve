@@ -18,6 +18,7 @@ import (
 	"time"
 
 	"github.com/russross/blackfriday/v2"
+	"golang.org/x/net/webdav"
 )
 
 type FileInfo struct {
@@ -290,7 +291,7 @@ const htmlTemplate = `<!DOCTYPE html>
     <div class="container">
         <header>
             <div class="header-top">
-                <div class="title">GoServe v1.0</div>
+                <div class="title">GoServe v1.1</div>
                 <div class="controls">
                     <button class="btn" onclick="toggleTheme()">◐ Theme</button>
                     {{if .Path}}
@@ -310,9 +311,12 @@ const htmlTemplate = `<!DOCTYPE html>
         <div class="toolbar">
             <input type="text" class="search-box" id="searchBox" placeholder="⌕ Search files (supports *.ext wildcards)..." onkeyup="filterFiles()">
             {{if .CanUpload}}
-            <form class="upload-form" method="POST" enctype="multipart/form-data" action="?upload=1">
-                <input type="file" name="file" class="file-input" multiple required>
-                <button type="submit" class="btn-primary">↑ Upload</button>
+            <form class="upload-form" id="uploadForm" method="POST" enctype="multipart/form-data" action="?upload=1">
+                <input type="file" name="files" class="file-input" multiple id="fileInput">
+                <input type="file" name="directory"  class="file-input" webkitdirectory directory id="dirInput" style="display:none;">
+                <button type="button" class="btn-secondary" onclick="document.getElementById('fileInput').click()">📄 Files</button>
+                <button type="button" class="btn-secondary" onclick="document.getElementById('dirInput').click()">📁 Folder</button>
+                <button type="submit" class="btn-primary" id="uploadBtn" disabled>↑ Upload</button>
             </form>
             {{end}}
         </div>
@@ -548,6 +552,54 @@ const htmlTemplate = `<!DOCTYPE html>
         // Close preview with Escape key
         document.addEventListener('keydown', e => {
             if (e.key === 'Escape') closePreview();
+        });
+
+        // Handle file/folder uploads
+        let selectedFiles = [];
+        
+        document.getElementById('fileInput')?.addEventListener('change', function(e) {
+            selectedFiles = Array.from(e.target.files);
+            updateUploadButton();
+        });
+        
+        document.getElementById('dirInput')?.addEventListener('change', function(e) {
+            selectedFiles = Array.from(e.target.files);
+            updateUploadButton();
+        });
+        
+        function updateUploadButton() {
+            const btn = document.getElementById('uploadBtn');
+            if (selectedFiles.length > 0) {
+                btn.disabled = false;
+                btn.textContent = '↑ Upload ' + selectedFiles.length + ' file(s)';
+            } else {
+                btn.disabled = true;
+                btn.textContent = '↑ Upload';
+            }
+        }
+        
+        document.getElementById('uploadForm')?.addEventListener('submit', function(e) {
+            e.preventDefault();
+            if (selectedFiles.length === 0) return;
+            
+            const formData = new FormData();
+            selectedFiles.forEach(file => {
+                const path = file.webkitRelativePath || file.name;
+                formData.append('files', file, path);
+            });
+            
+            fetch(window.location.pathname + '?upload=1', {
+                method: 'POST',
+                body: formData
+            }).then(response => {
+                if (response.ok) {
+                    window.location.reload();
+                } else {
+                    alert('Upload failed');
+                }
+            }).catch(err => {
+                alert('Upload error: ' + err.message);
+            });
         });
     </script>
 </body>
@@ -851,34 +903,82 @@ func dirHandler(baseDir string, tmpl *template.Template, quiet bool) http.Handle
 }
 
 func handleUpload(w http.ResponseWriter, r *http.Request, targetDir string) {
-	r.ParseMultipartForm(maxUploadSize)
+	r.ParseMultipartForm(maxUploadSize * 10) // Allow larger total size for multiple files
 
-	file, handler, err := r.FormFile("file")
-	if err != nil {
-		http.Error(w, "Upload failed", http.StatusBadRequest)
-		return
-	}
-	defer file.Close()
-
-	// Check file size
-	if handler.Size > maxUploadSize {
-		http.Error(w, "File too large", http.StatusRequestEntityTooLarge)
+	// Get all uploaded files
+	files := r.MultipartForm.File["files"]
+	if len(files) == 0 {
+		http.Error(w, "No files uploaded", http.StatusBadRequest)
 		return
 	}
 
-	// Save file
-	dst, err := os.Create(filepath.Join(targetDir, handler.Filename))
-	if err != nil {
-		http.Error(w, "Cannot save file", http.StatusInternalServerError)
+	uploadedCount := 0
+	var lastError error
+
+	for _, fileHeader := range files {
+		// Check file size
+		if fileHeader.Size > maxUploadSize {
+			lastError = fmt.Errorf("file %s too large", fileHeader.Filename)
+			continue
+		}
+
+		// Open uploaded file
+		file, err := fileHeader.Open()
+		if err != nil {
+			lastError = err
+			continue
+		}
+
+		// Extract relative path from filename (for directory uploads)
+		// For regular files, this is just the filename
+		relativePath := filepath.FromSlash(fileHeader.Filename)
+		
+		// Prevent path traversal attacks
+		relativePath = filepath.Clean(relativePath)
+		if strings.Contains(relativePath, "..") {
+			file.Close()
+			lastError = fmt.Errorf("invalid path: %s", relativePath)
+			continue
+		}
+
+		// Full destination path
+		destPath := filepath.Join(targetDir, relativePath)
+		
+		// Create parent directories if needed
+		destDir := filepath.Dir(destPath)
+		if err := os.MkdirAll(destDir, 0755); err != nil {
+			file.Close()
+			lastError = err
+			continue
+		}
+
+		// Save file
+		dst, err := os.Create(destPath)
+		if err != nil {
+			file.Close()
+			lastError = err
+			continue
+		}
+
+		if _, err := io.Copy(dst, file); err != nil {
+			dst.Close()
+			file.Close()
+			lastError = err
+			continue
+		}
+
+		dst.Close()
+		file.Close()
+		uploadedCount++
+	}
+
+	// Return response
+	if uploadedCount == 0 && lastError != nil {
+		http.Error(w, fmt.Sprintf("Upload failed: %v", lastError), http.StatusInternalServerError)
 		return
 	}
-	defer dst.Close()
 
-	if _, err := io.Copy(dst, file); err != nil {
-		http.Error(w, "Cannot save file", http.StatusInternalServerError)
-		return
-	}
-
+	// Success - redirect back to directory
 	http.Redirect(w, r, r.URL.Path, http.StatusSeeOther)
 }
 
@@ -997,7 +1097,7 @@ func handleMarkdownPreview(w http.ResponseWriter, fullPath string) {
 func main() {
 	// Custom usage function with examples
 	flag.Usage = func() {
-		fmt.Fprintf(os.Stderr, "GoServe v1.0 - Lightweight HTTP File Server\n\n")
+		fmt.Fprintf(os.Stderr, "GoServe v1.1 - Lightweight HTTP File Server\n\n")
 		fmt.Fprintf(os.Stderr, "USAGE:\n")
 		fmt.Fprintf(os.Stderr, "  go run main.go [options]\n\n")
 		fmt.Fprintf(os.Stderr, "OPTIONS:\n")
@@ -1062,6 +1162,33 @@ func main() {
 		log.Fatal(err)
 	}
 
+	// Setup WebDAV handler
+	webdavHandler := &webdav.Handler{
+		FileSystem: webdav.Dir(absPath),
+		LockSystem: webdav.NewMemLS(),
+		Logger: func(r *http.Request, err error) {
+			if err != nil && !*quiet {
+				log.Printf("WebDAV: %s %s - %v", r.Method, r.URL.Path, err)
+			}
+		},
+	}
+
+	// WebDAV handler with authentication
+	webdavHTTP := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Strip /webdav prefix for the webdav handler
+		r.URL.Path = strings.TrimPrefix(r.URL.Path, "/webdav")
+		if r.URL.Path == "" {
+			r.URL.Path = "/"
+		}
+		webdavHandler.ServeHTTP(w, r)
+	})
+
+	if requireAuth {
+		http.HandleFunc("/webdav/", authMiddleware(webdavHTTP))
+	} else {
+		http.HandleFunc("/webdav/", webdavHTTP)
+	}
+
 	// Setup handler with authentication and GZIP
 	handler := dirHandler(absPath, tmpl, *quiet)
 	if requireAuth {
@@ -1087,13 +1214,15 @@ func main() {
 
 	// Display startup info
 	fmt.Println("╔════════════════════════════════════════╗")
-	fmt.Println("║              Go-Serve v1.0              ║")
+	fmt.Println("║              GoServe v1.1               ║")
 	fmt.Println("╚════════════════════════════════════════╝")
 	fmt.Printf("\n📂 Serving: %s\n", absPath)
 	fmt.Printf("⏰ Started: %s\n", time.Now().Format("2006-01-02 15:04:05"))
-	fmt.Println("\n🌐 Available on:")
+	fmt.Println("\n🌐 Web Interface:")
 	fmt.Printf("   • http://localhost:%s\n", *port)
 	fmt.Printf("   • http://127.0.0.1:%s\n", *port)
+	fmt.Println("\n📁 WebDAV Mount:")
+	fmt.Printf("   • http://localhost:%s/webdav/\n", *port)
 
 	// Show network addresses
 	addrs, err := net.InterfaceAddrs()

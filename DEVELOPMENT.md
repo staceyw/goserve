@@ -35,7 +35,17 @@
 - Cross-platform build script (`build.ps1`)
 - Comprehensive `README.md`
 - Custom help with usage examples (`-h` flag)
-- Banner: "Go-Serve v1.0"
+- Banner: "GoServe v1.0"
+- Published to GitHub as v1.0
+
+### Phase 6: Version 1.1 Features (February 2026)
+- Added directory upload with structure preservation
+- Implemented WebDAV server for network drive mounting
+- Enhanced upload handler to support multiple files
+- Added `golang.org/x/net/webdav` dependency
+- Updated UI with separate buttons for files vs folders
+- JavaScript FormData handling for complex uploads
+- WebDAV authentication integration
 
 ## Key Architectural Decisions
 
@@ -225,17 +235,35 @@ go build main.go            # Single platform
 ✅ Port conflict detection  
 ✅ Quiet mode (`-quiet`)  
 ✅ Build script for multiple platforms  
+✅ Directory upload (drag & drop folders) - v1.1
+✅ WebDAV support for network drive mounting - v1.1
 
-### TODO: Future Enhancements
+### v1.1 Release Notes (February 2026)
+
+**New Features:**
+- **Directory Upload**: Upload entire folders with preserved directory structure via web interface
+- **WebDAV Server**: Mount the file server as a network drive on Windows/Mac/Linux
+  - Full PROPFIND, MKCOL, COPY, MOVE support
+  - Integrated with existing authentication system
+  - Available at `/webdav/` endpoint
+
+**Technical Changes:**
+- Added `golang.org/x/net/webdav` dependency
+- Modified upload handler to support multiple files with relative paths
+- Enhanced JavaScript to handle directory selection with `webkitdirectory`
+- Created automatic directory structure on upload
+- WebDAV lock system using memory-based LockSystem
+
+### Future Enhancements
 - [ ] HTTPS/TLS support with Let's Encrypt
 - [ ] Rate limiting to prevent abuse
 - [ ] Custom 404 pages
 - [ ] Syntax highlighting in code preview
 - [ ] File/directory size statistics
 - [ ] Session-based auth (JWT) instead of Basic Auth
-- [ ] WebDAV support for network drive mounting
-- [ ] Directory upload (drag & drop folders)
 - [ ] File versioning/backup
+- [ ] Resume support for large file uploads
+- [ ] Custom themes/branding
 
 ## Command Line Reference
 
@@ -323,5 +351,6 @@ For questions about architectural decisions, refer to this document first.
 ---
 
 **Last Updated**: February 9, 2026  
-**Version**: 1.0  
-**Status**: Production Ready
+**Version**: 1.1  
+**Status**: Production Ready  
+**New in v1.1**: Directory Upload, WebDAV Server

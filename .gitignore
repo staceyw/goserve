@@ -1,0 +1,51 @@
+# Binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test binary, built with `go test -c`
+*.test
+
+# Output of the go coverage tool
+*.out
+
+# Go workspace file
+go.work
+
+# Built binaries
+go-server-*
+goserve
+GoServe
+main
+main.exe
+
+# Dependency directories
+vendor/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Learning/test files
+My.go
+game.go
+server.go
+go-serve2.go
+
+# Temporary files
+Temp/
+*.tmp
+test.txt
+*.pdf
+
+# Log files
+*.log

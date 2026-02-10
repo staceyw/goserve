@@ -276,6 +276,15 @@ const htmlTemplate = `<!DOCTYPE html>
             color: var(--text-secondary);
         }
         .preview-close:hover { color: var(--text-primary); }
+        kbd {
+            background: var(--hover-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            padding: 2px 8px;
+            font-family: monospace;
+            font-size: 0.9em;
+            box-shadow: 0 2px 0 rgba(0,0,0,0.1);
+        }
         .markdown-body { line-height: 1.6; }
         .markdown-body h1, .markdown-body h2 { margin-top: 24px; margin-bottom: 16px; }
         .markdown-body pre { background: var(--hover-bg); padding: 16px; border-radius: 6px; overflow: auto; }
@@ -293,6 +302,7 @@ const htmlTemplate = `<!DOCTYPE html>
             <div class="header-top">
                 <div class="title">GoServe v1.1</div>
                 <div class="controls">
+                    <button class="btn" onclick="showAbout()">ℹ️ About</button>
                     <button class="btn" onclick="toggleTheme()">◐ Theme</button>
                     {{if .Path}}
                     <button class="btn" onclick="downloadZip()">▣ Download ZIP</button>
@@ -369,6 +379,71 @@ const htmlTemplate = `<!DOCTYPE html>
         <div class="preview-content" onclick="event.stopPropagation()">
             <span class="preview-close" onclick="closePreview()">&times;</span>
             <div id="previewBody"></div>
+        </div>
+    </div>
+
+    <div id="aboutModal" class="preview-modal" onclick="closeAbout()">
+        <div class="preview-content" onclick="event.stopPropagation()" style="max-width: 600px;">
+            <span class="preview-close" onclick="closeAbout()">&times;</span>
+            <div id="aboutBody" style="padding: 20px;">
+                <h2 style="margin-top: 0; color: #2563eb;">GoServe v1.1</h2>
+                <p style="color: #666; margin-bottom: 20px;">Lightweight HTTP file server with WebDAV support</p>
+                
+                <h3 style="color: #2563eb; margin-bottom: 10px;">✨ Features</h3>
+                <ul style="color: #666; line-height: 1.8; margin-bottom: 20px;">
+                    <li>📁 Directory browsing with modern UI</li>
+                    <li>📂 Directory upload with structure preservation</li>
+                    <li>💾 WebDAV server - mount as network drive</li>
+                    <li>🔍 Search & filter with wildcards (* and ?)</li>
+                    <li>👁️ File preview (images, text, markdown, code)</li>
+                    <li>📦 ZIP download for directories</li>
+                    <li>🔒 Optional authentication (readonly/readwrite/admin)</li>
+                    <li>🌓 Dark mode toggle</li>
+                    <li>🗜️ Automatic GZIP compression</li>
+                </ul>
+                
+                <h3 style="color: #2563eb; margin-bottom: 10px;">⌨️ Keyboard Shortcuts</h3>
+                <ul style="color: #666; line-height: 1.8; margin-bottom: 20px;">
+                    <li><kbd>ESC</kbd> - Close preview/about modal</li>
+                    <li><kbd>Ctrl+F</kbd> - Focus search (browser default)</li>
+                </ul>
+                
+                <h3 style="color: #2563eb; margin-bottom: 10px;">💾 WebDAV Mount URL</h3>
+                <p style="color: #666; margin-bottom: 5px; font-size: 0.9em;">Copy and paste this URL to mount as network drive:</p>
+                <input type="text" id="webdavUrl" readonly 
+                    style="width: 100%; padding: 10px; margin-bottom: 10px; font-family: monospace; background: #f5f5f5; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; cursor: text;"
+                    onclick="this.select()">
+                <button onclick="copyWebDAVUrl()" style="padding: 8px 16px; background: #2563eb; color: white; border: none; border-radius: 4px; cursor: pointer; margin-bottom: 20px;">
+                    📋 Copy URL
+                </button>
+                <script>
+                    document.getElementById('webdavUrl').value = window.location.protocol + '//' + window.location.host + '/webdav/';
+                </script>
+                
+                <h3 style="color: #2563eb; margin-bottom: 10px;">🌐 Share via Tailscale</h3>
+                <p style="color: #666; margin-bottom: 10px; font-size: 0.9em;">
+                    Share this server securely over your Tailscale network or publicly via HTTPS:
+                </p>
+                <div style="background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 6px; padding: 15px; margin-bottom: 20px;">
+                    <p style="color: #666; margin: 0 0 10px 0; font-weight: 600;">📱 Tailscale Serve (Private - Tailnet only):</p>
+                    <pre style="background: #1f2937; color: #10b981; padding: 10px; border-radius: 4px; overflow-x: auto; margin: 0 0 10px 0; font-size: 13px;">tailscale serve --bg 8080</pre>
+                    <p style="color: #666; margin: 0 0 15px 0; font-size: 0.85em;">
+                        Share with devices on your Tailscale network. Access via your machine's Tailscale hostname.
+                    </p>
+                    
+                    <p style="color: #666; margin: 0 0 10px 0; font-weight: 600;">🔓 Tailscale Funnel (Public HTTPS):</p>
+                    <pre style="background: #1f2937; color: #10b981; padding: 10px; border-radius: 4px; overflow-x: auto; margin: 0 0 10px 0; font-size: 13px;">tailscale funnel --bg 8080</pre>
+                    <p style="color: #666; margin: 0; font-size: 0.85em;">
+                        Share publicly via HTTPS tunnel. Anyone with the link can access (use with <code style="background: #e5e7eb; padding: 2px 6px; border-radius: 3px;">-logins</code> for auth).
+                    </p>
+                </div>
+                
+                <h3 style="color: #2563eb; margin-bottom: 10px;">🔗 Links</h3>
+                <p style="color: #666;">
+                    <a href="https://github.com/staceyw/GoServe" target="_blank" style="color: #2563eb; text-decoration: none;">📦 GitHub Repository</a><br>
+                    <span style="color: #999; font-size: 0.9em;">MIT License • Built with Go 1.25+</span>
+                </p>
+            </div>
         </div>
     </div>
 
@@ -544,14 +619,43 @@ const htmlTemplate = `<!DOCTYPE html>
             document.getElementById('previewModal').style.display = 'none';
         }
 
+        function showAbout() {
+            document.getElementById('aboutModal').style.display = 'block';
+        }
+
+        function closeAbout() {
+            document.getElementById('aboutModal').style.display = 'none';
+        }
+
+        function copyWebDAVUrl() {
+            const urlInput = document.getElementById('webdavUrl');
+            urlInput.select();
+            urlInput.setSelectionRange(0, 99999); // For mobile
+            
+            try {
+                navigator.clipboard.writeText(urlInput.value).then(() => {
+                    alert('✓ WebDAV URL copied to clipboard!');
+                }).catch(() => {
+                    document.execCommand('copy');
+                    alert('✓ WebDAV URL copied!');
+                });
+            } catch (err) {
+                document.execCommand('copy');
+                alert('✓ WebDAV URL copied!');
+            }
+        }
+
         function escapeHtml(text) {
             const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
             return text.replace(/[&<>"']/g, m => map[m]);
         }
 
-        // Close preview with Escape key
+        // Close modals with Escape key
         document.addEventListener('keydown', e => {
-            if (e.key === 'Escape') closePreview();
+            if (e.key === 'Escape') {
+                closePreview();
+                closeAbout();
+            }
         });
 
         // Handle file/folder uploads
@@ -1119,6 +1223,13 @@ func main() {
 		fmt.Fprintf(os.Stderr, "    go run main.go -quiet\n\n")
 		fmt.Fprintf(os.Stderr, "  Combined example:\n")
 		fmt.Fprintf(os.Stderr, "    go run main.go -port 8000 -dir /var/www -upload -modify -logins logins.txt\n\n")
+		fmt.Fprintf(os.Stderr, "TAILSCALE SHARING:\n")
+		fmt.Fprintf(os.Stderr, "  Share privately on your Tailscale network:\n")
+		fmt.Fprintf(os.Stderr, "    go run main.go &\n")
+		fmt.Fprintf(os.Stderr, "    tailscale serve --bg 8080\n\n")
+		fmt.Fprintf(os.Stderr, "  Share publicly via HTTPS (use with -logins):\n")
+		fmt.Fprintf(os.Stderr, "    go run main.go -logins logins.txt &\n")
+		fmt.Fprintf(os.Stderr, "    tailscale funnel --bg 8080\n\n")
 	}
 
 	// Command line flags

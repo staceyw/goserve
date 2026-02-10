@@ -246,6 +246,50 @@ sudo mount -t davfs http://localhost:8080/webdav/ /mnt/goserve
 - Use your username/password from `logins.txt`
 - WebDAV respects the same permission levels (readonly/readwrite/admin)
 
+## Sharing via Tailscale
+
+GoServe can be easily shared over your Tailscale network or publicly via HTTPS tunneling.
+
+### Private Sharing (Tailnet Only)
+
+Share the server with devices on your Tailscale network:
+
+```bash
+# Start GoServe on port 8080
+go run main.go -upload -modify
+
+# In another terminal, share via Tailscale
+tailscale serve --bg 8080
+```
+
+Your server will be accessible at your machine's Tailscale hostname (e.g., `http://your-machine.tail-scale.ts.net`).
+
+### Public HTTPS Sharing (Tailscale Funnel)
+
+Share the server publicly via an HTTPS tunnel:
+
+```bash
+# Start GoServe with authentication (recommended for public access)
+go run main.go -logins logins.txt -upload -modify
+
+# In another terminal, create public HTTPS tunnel
+tailscale funnel --bg 8080
+```
+
+Tailscale Funnel provides:
+- ✅ Automatic HTTPS with valid certificates
+- ✅ Public URL that anyone can access
+- ✅ No firewall configuration needed
+- ⚠️ **Important**: Use `-logins` flag for authentication when sharing publicly
+
+**Stop sharing:**
+```bash
+tailscale serve --bg off    # Stop Tailscale Serve
+tailscale funnel --bg off   # Stop Tailscale Funnel
+```
+
+**Note**: Tailscale Funnel requires Tailscale v1.38+ and must be enabled in your Tailscale admin console.
+
 ## Building
 
 ### Compile for Current Platform

@@ -183,6 +183,38 @@ go build main.go            # Single platform
 - **Debian/Linux**: `goserve-linux-amd64`
 - **Raspberry Pi**: `goserve-linux-arm64`
 
+### Tailscale Deployment
+
+GoServe integrates seamlessly with Tailscale for secure sharing:
+
+**Tailscale Serve (Private Network):**
+```bash
+go run main.go -port 8080 &
+tailscale serve --bg 8080
+```
+- Shares with your Tailscale network only
+- Accessible via machine's Tailscale hostname
+- No HTTPS setup required
+- Ideal for team/family file sharing
+
+**Tailscale Funnel (Public HTTPS):**
+```bash
+go run main.go -logins logins.txt -port 8080 &
+tailscale funnel --bg 8080
+```
+- Creates public HTTPS endpoint
+- Automatic SSL/TLS certificates
+- Anyone with URL can access
+- **MUST use `-logins` for authentication**
+- Requires Tailscale v1.38+ and admin console approval
+
+**Best Practices:**
+- Use Tailscale Serve for internal/team access
+- Use Tailscale Funnel + authentication for public sharing
+- Monitor access logs when publicly accessible
+- Set appropriate permissions (readonly for public)
+- Use `-maxsize` to limit upload sizes on public instances
+
 ## Security Considerations
 
 ### Authentication

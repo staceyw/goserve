@@ -22,12 +22,13 @@ import (
 )
 
 type FileInfo struct {
-	Name    string
-	Path    string
-	Size    string
-	ModTime string
-	IsDir   bool
-	Icon    string
+	Name       string
+	Path       string
+	Size       string
+	ModTime    string
+	IsDir      bool
+	Icon       string
+	IsEditable bool
 }
 
 type PageData struct {
@@ -66,6 +67,16 @@ const htmlTemplate = `<!DOCTYPE html>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>GoServe - {{.Path}}</title>
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' style='stop-color:%2300ADD8'/%3E%3Cstop offset='100%25' style='stop-color:%235DC9E2'/%3E%3C/linearGradient%3E%3C/defs%3E%3Cpath d='M8 24 Q16 12 24 24 T40 24' stroke='url(%23g)' stroke-width='4' fill='none' stroke-linecap='round' opacity='0.7'/%3E%3Cpath d='M8 30 Q16 20 24 30 T40 30' stroke='url(%23g)' stroke-width='4' fill='none' stroke-linecap='round' opacity='0.5'/%3E%3Ccircle cx='24' cy='24' r='8' fill='url(%23g)'/%3E%3Ccircle cx='24' cy='24' r='5' fill='%23fff'/%3E%3Cpath d='M24 20 L24 28 M24 20 L22 22 M24 20 L26 22' stroke='url(%23g)' stroke-width='2' stroke-linecap='round' fill='none'/%3E%3C/svg%3E">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/theme/monokai.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/javascript/javascript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/python/python.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/go/go.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/xml/xml.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/css/css.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/markdown/markdown.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/shell/shell.min.js"></script>
     <style>
         :root {
             --bg-primary: #f5f5f5;
@@ -437,7 +448,8 @@ const htmlTemplate = `<!DOCTYPE html>
                     <td class="modified">{{.ModTime}}</td>
                     {{if $.CanModify}}
                     <td class="actions">
-                        <button class="action-btn" onclick="renameFile('{{.Path}}', '{{.Name}}')" title="Rename file">✎</button>
+                        {{if .IsEditable}}<button class="action-btn" onclick="editFile('{{.Path}}', '{{.Name}}')" title="Edit file">✎</button>{{end}}
+                        <button class="action-btn" onclick="renameFile('{{.Path}}', '{{.Name}}')" title="Rename file">⎆</button>
                         <button class="action-btn danger" onclick="deleteFile('{{.Path}}', '{{.Name}}')" title="Delete file">×</button>
                     </td>
                     {{end}}
@@ -453,6 +465,19 @@ const htmlTemplate = `<!DOCTYPE html>
         <div class="preview-content" onclick="event.stopPropagation()">
             <span class="preview-close" onclick="closePreview()">&times;</span>
             <div id="previewBody"></div>
+        </div>
+    </div>
+
+    <div id="editorModal" class="preview-modal" onclick="closeEditor()">
+        <div class="preview-content" onclick="event.stopPropagation()" style="max-width: 90%; max-height: 90%;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; padding: 10px; background: var(--hover-bg); border-radius: 4px;">
+                <span id="editorFileName" style="font-weight: 600; color: var(--text-primary);"></span>
+                <div>
+                    <button class="btn-primary" onclick="saveFile()" style="margin-right: 10px;">💾 Save</button>
+                    <button class="btn-secondary" onclick="closeEditor()">Cancel</button>
+                </div>
+            </div>
+            <textarea id="editor"></textarea>
         </div>
     </div>
 
@@ -565,6 +590,10 @@ const htmlTemplate = `<!DOCTYPE html>
             localStorage.setItem('theme', next);
             updateThemeButton(next);
             updateAboutLogo(next);
+            // Update CodeMirror theme if editor is initialized
+            if (editor) {
+                editor.setOption('theme', next === 'dark' ? 'monokai' : 'default');
+            }
         }
         
         // Load saved theme
@@ -683,6 +712,83 @@ const htmlTemplate = `<!DOCTYPE html>
             }
         }
 
+        // Text editor
+        let editor = null;
+        let currentEditPath = '';
+
+        function editFile(path, name) {
+            currentEditPath = path;
+            document.getElementById('editorFileName').textContent = name;
+            
+            fetch(path)
+                .then(r => {
+                    if (!r.ok) throw new Error('Failed to load file');
+                    return r.text();
+                })
+                .then(content => {
+                    document.getElementById('editor').value = content;
+                    document.getElementById('editorModal').style.display = 'block';
+                    
+                    // Initialize CodeMirror if not already initialized
+                    if (!editor) {
+                        const currentTheme = document.documentElement.getAttribute('data-theme');
+                        editor = CodeMirror.fromTextArea(document.getElementById('editor'), {
+                            lineNumbers: true,
+                            theme: currentTheme === 'dark' ? 'monokai' : 'default',
+                            mode: getMode(name),
+                            indentUnit: 4,
+                            lineWrapping: true
+                        });
+                        editor.setSize('100%', '70vh');
+                    } else {
+                        editor.setValue(content);
+                        editor.setOption('mode', getMode(name));
+                    }
+                })
+                .catch(err => alert('Error loading file: ' + err.message));
+        }
+
+        function getMode(filename) {
+            const ext = filename.split('.').pop().toLowerCase();
+            const modes = {
+                'js': 'javascript',
+                'json': 'javascript',
+                'py': 'python',
+                'go': 'go',
+                'html': 'xml',
+                'xml': 'xml',
+                'css': 'css',
+                'md': 'markdown',
+                'sh': 'shell',
+                'bash': 'shell',
+                'txt': 'text/plain'
+            };
+            return modes[ext] || 'text/plain';
+        }
+
+        function saveFile() {
+            const content = editor.getValue();
+            fetch(currentEditPath + '?edit=1', {
+                method: 'POST',
+                headers: { 'Content-Type': 'text/plain' },
+                body: content
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    alert('✓ File saved successfully!');
+                    closeEditor();
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            })
+            .catch(err => alert('Error saving file: ' + err.message));
+        }
+
+        function closeEditor() {
+            document.getElementById('editorModal').style.display = 'none';
+        }
+
         function downloadZip() {
             window.location.href = '?zip=1';
         }
@@ -770,6 +876,7 @@ const htmlTemplate = `<!DOCTYPE html>
             if (e.key === 'Escape') {
                 closePreview();
                 closeAbout();
+                closeEditor();
             }
         });
 
@@ -905,6 +1012,36 @@ func authMiddleware(next http.HandlerFunc) http.HandlerFunc {
 
 		next(w, r)
 	}
+}
+
+func isEditableFile(name string) bool {
+	ext := strings.ToLower(filepath.Ext(name))
+	editableExts := map[string]bool{
+		".txt": true, ".md": true, ".markdown": true,
+		".go": true, ".py": true, ".js": true, ".ts": true,
+		".html": true, ".htm": true, ".css": true, ".scss": true,
+		".json": true, ".xml": true, ".yaml": true, ".yml": true,
+		".toml": true, ".ini": true, ".conf": true, ".config": true,
+		".sh": true, ".bash": true, ".zsh": true, ".fish": true,
+		".ps1": true, ".bat": true, ".cmd": true,
+		".c": true, ".cpp": true, ".h": true, ".hpp": true,
+		".java": true, ".kt": true, ".scala": true,
+		".rb": true, ".php": true, ".pl": true, ".lua": true,
+		".rs": true, ".swift": true, ".m": true,
+		".sql": true, ".csv": true, ".tsv": true,
+		".log": true, ".env": true, ".gitignore": true,
+		".dockerfile": true, ".makefile": true,
+	}
+	// Also check for files without extension or common text file names
+	if ext == "" {
+		baseName := strings.ToLower(filepath.Base(name))
+		commonTextFiles := map[string]bool{
+			"readme": true, "license": true, "makefile": true,
+			"dockerfile": true, "gemfile": true, "rakefile": true,
+		}
+		return commonTextFiles[baseName]
+	}
+	return editableExts[ext]
 }
 
 func getIcon(name string, isDir bool) string {
@@ -1045,6 +1182,17 @@ func dirHandler(baseDir string, tmpl *template.Template, quiet bool) http.Handle
 			return
 		}
 
+		// Handle file edit
+		if r.URL.Query().Get("edit") != "" && r.Method == "POST" {
+			if !canModify {
+				w.Header().Set("Content-Type", "application/json")
+				fmt.Fprintf(w, `{"success": false, "error": "Forbidden: Edit not allowed"}`)
+				return
+			}
+			handleEdit(w, r, fullPath, baseDir)
+			return
+		}
+
 		// Handle ZIP download
 		if r.URL.Query().Get("zip") != "" {
 			handleZipDownload(w, fullPath, urlPath)
@@ -1100,12 +1248,13 @@ func dirHandler(baseDir string, tmpl *template.Template, quiet bool) http.Handle
 			}
 
 			files = append(files, FileInfo{
-				Name:    name,
-				Path:    urlPath,
-				Size:    size,
-				ModTime: info.ModTime().Format("2006-01-02 15:04:05"),
-				IsDir:   entry.IsDir(),
-				Icon:    getIcon(name, entry.IsDir()),
+				Name:       name,
+				Path:       urlPath,
+				Size:       size,
+				ModTime:    info.ModTime().Format("2006-01-02 15:04:05"),
+				IsDir:      entry.IsDir(),
+				Icon:       getIcon(name, entry.IsDir()),
+				IsEditable: !entry.IsDir() && isEditableFile(name),
 			})
 		}
 
@@ -1246,6 +1395,32 @@ func handleRename(w http.ResponseWriter, r *http.Request, baseDir string) {
 	}
 
 	err := os.Rename(oldFullPath, newFullPath)
+	w.Header().Set("Content-Type", "application/json")
+	if err != nil {
+		fmt.Fprintf(w, `{"success": false, "error": "%s"}`, err.Error())
+	} else {
+		fmt.Fprintf(w, `{"success": true}`)
+	}
+}
+
+func handleEdit(w http.ResponseWriter, r *http.Request, fullPath, baseDir string) {
+	// Security check
+	if !strings.HasPrefix(fullPath, baseDir) {
+		w.Header().Set("Content-Type", "application/json")
+		fmt.Fprintf(w, `{"success": false, "error": "Invalid path"}`)
+		return
+	}
+
+	// Read the new content from request body
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		w.Header().Set("Content-Type", "application/json")
+		fmt.Fprintf(w, `{"success": false, "error": "Failed to read content"}`)
+		return
+	}
+
+	// Write to file
+	err = os.WriteFile(fullPath, body, 0644)
 	w.Header().Set("Content-Type", "application/json")
 	if err != nil {
 		fmt.Fprintf(w, `{"success": false, "error": "%s"}`, err.Error())

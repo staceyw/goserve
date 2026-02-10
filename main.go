@@ -64,27 +64,28 @@ const htmlTemplate = `<!DOCTYPE html>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Go-Serve - {{.Path}}</title>
+    <title>GoServe - {{.Path}}</title>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' style='stop-color:%2300ADD8'/%3E%3Cstop offset='100%25' style='stop-color:%235DC9E2'/%3E%3C/linearGradient%3E%3C/defs%3E%3Cpath d='M8 24 Q16 12 24 24 T40 24' stroke='url(%23g)' stroke-width='4' fill='none' stroke-linecap='round' opacity='0.7'/%3E%3Cpath d='M8 30 Q16 20 24 30 T40 30' stroke='url(%23g)' stroke-width='4' fill='none' stroke-linecap='round' opacity='0.5'/%3E%3Ccircle cx='24' cy='24' r='8' fill='url(%23g)'/%3E%3Ccircle cx='24' cy='24' r='5' fill='%23fff'/%3E%3Cpath d='M24 20 L24 28 M24 20 L22 22 M24 20 L26 22' stroke='url(%23g)' stroke-width='2' stroke-linecap='round' fill='none'/%3E%3C/svg%3E">
     <style>
         :root {
             --bg-primary: #f5f5f5;
             --bg-secondary: white;
-            --bg-header: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --bg-header: linear-gradient(135deg, #00ADD8 0%, #5DC9E2 100%);
             --text-primary: #495057;
             --text-secondary: #868e96;
             --border-color: #dee2e6;
             --hover-bg: #f8f9fa;
-            --accent: #667eea;
+            --accent: #00ADD8;
         }
         [data-theme="dark"] {
             --bg-primary: #1a1a1a;
             --bg-secondary: #2d2d2d;
-            --bg-header: linear-gradient(135deg, #4a5568 0%, #2d3748 100%);
+            --bg-header: linear-gradient(135deg, #0891b2 0%, #06b6d4 100%);
             --text-primary: #e2e8f0;
             --text-secondary: #a0aec0;
             --border-color: #4a5568;
             --hover-bg: #3d3d3d;
-            --accent: #818cf8;
+            --accent: #22d3ee;
         }
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -105,21 +106,52 @@ const htmlTemplate = `<!DOCTYPE html>
         header {
             background: var(--bg-header);
             color: white;
-            padding: 30px;
-            position: relative;
+            padding: 20px 30px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 12px;
         }
-        .header-top {
+        .title {
+            font-size: 18px;
+            font-weight: 500;
+            opacity: 0.95;
+        }
+        .action-bar {
+            padding: 12px 20px;
+            border-bottom: 1px solid var(--border-color);
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 15px;
+            flex-wrap: wrap;
+            gap: 15px;
+            background: var(--bg-secondary);
         }
-        .title { font-size: 13px; opacity: 0.9; }
-        .controls { display: flex; gap: 10px; }
+        .breadcrumb {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            font-size: 14px;
+            align-items: center;
+        }
+        .breadcrumb a {
+            color: var(--accent);
+            text-decoration: none;
+            transition: opacity 0.2s;
+        }
+        .breadcrumb a:hover { opacity: 0.7; }
+        .breadcrumb span { 
+            opacity: 0.5;
+            color: var(--text-secondary);
+        }
+        .controls { 
+            display: flex;
+            gap: 8px;
+        }
         .btn {
-            background: rgba(255,255,255,0.2);
-            border: 1px solid rgba(255,255,255,0.3);
-            color: white;
+            background: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
             padding: 6px 12px;
             border-radius: 4px;
             cursor: pointer;
@@ -127,23 +159,10 @@ const htmlTemplate = `<!DOCTYPE html>
             transition: all 0.2s;
         }
         .btn:hover {
-            background: rgba(255,255,255,0.3);
+            background: var(--hover-bg);
+            border-color: var(--accent);
         }
         h1 { font-size: 24px; margin-bottom: 10px; }
-        .breadcrumb {
-            display: flex;
-            gap: 8px;
-            flex-wrap: wrap;
-            font-size: 14px;
-            opacity: 0.9;
-        }
-        .breadcrumb a {
-            color: white;
-            text-decoration: none;
-            transition: opacity 0.2s;
-        }
-        .breadcrumb a:hover { opacity: 0.7; }
-        .breadcrumb span { opacity: 0.6; }
         .toolbar {
             padding: 15px 20px;
             border-bottom: 1px solid var(--border-color);
@@ -186,6 +205,47 @@ const htmlTemplate = `<!DOCTYPE html>
             font-weight: 500;
         }
         .btn-primary:hover { opacity: 0.9; }
+        .btn-secondary {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.2s;
+        }
+        .btn-secondary:hover {
+            background: var(--hover-bg);
+            border-color: var(--accent);
+        }
+        .segmented-control {
+            display: inline-flex;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        .segmented-control button {
+            background: var(--bg-secondary);
+            border: none;
+            border-right: 1px solid var(--border-color);
+            color: var(--text-primary);
+            padding: 8px 16px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.2s;
+            min-width: 100px;
+        }
+        .segmented-control button:last-child {
+            border-right: none;
+        }
+        .segmented-control button:hover {
+            background: var(--hover-bg);
+        }
+        .segmented-control button.active {
+            background: var(--accent);
+            color: white;
+        }
         table {
             width: 100%;
             border-collapse: collapse;
@@ -299,16 +359,23 @@ const htmlTemplate = `<!DOCTYPE html>
 <body>
     <div class="container">
         <header>
-            <div class="header-top">
-                <div class="title">GoServe v1.1</div>
-                <div class="controls">
-                    <button class="btn" onclick="showAbout()">ℹ️ About</button>
-                    <button class="btn" onclick="toggleTheme()">◐ Theme</button>
-                    {{if .Path}}
-                    <button class="btn" onclick="downloadZip()">▣ Download ZIP</button>
-                    {{end}}
-                </div>
-            </div>
+            <svg width="36" height="36" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                    <linearGradient id="logoGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" style="stop-color:#ffffff;stop-opacity:0.95" />
+                        <stop offset="100%" style="stop-color:#ffffff;stop-opacity:0.85" />
+                    </linearGradient>
+                </defs>
+                <path d="M8 24 Q16 12, 24 24 T40 24" stroke="url(#logoGrad)" stroke-width="4" fill="none" stroke-linecap="round" opacity="0.7"/>
+                <path d="M8 30 Q16 20, 24 30 T40 30" stroke="url(#logoGrad)" stroke-width="4" fill="none" stroke-linecap="round" opacity="0.5"/>
+                <circle cx="24" cy="24" r="8" fill="url(#logoGrad)"/>
+                <circle cx="24" cy="24" r="5" fill="rgba(0,0,0,0.15)"/>
+                <path d="M24 20 L24 28 M24 20 L22 22 M24 20 L26 22" stroke="rgba(0,173,216,0.8)" stroke-width="2" stroke-linecap="round" fill="none"/>
+            </svg>
+            <span class="title">GoServe v1.1</span>
+        </header>
+        
+        <div class="action-bar">
             <div class="breadcrumb">
                 <a href="/">◈ Home</a>
                 {{range .Breadcrumbs}}
@@ -316,19 +383,26 @@ const htmlTemplate = `<!DOCTYPE html>
                     <a href="{{.Path}}">{{.Name}}</a>
                 {{end}}
             </div>
-        </header>
+            <div class="controls">
+                <button class="btn-primary" id="themeBtn" onclick="toggleTheme()">◐ Theme</button>
+                <button class="btn-primary" onclick="showAbout()">ℹ️ About</button>
+            </div>
+        </div>
         
         <div class="toolbar">
             <input type="text" class="search-box" id="searchBox" placeholder="⌕ Search files (supports *.ext wildcards)..." onkeyup="filterFiles()">
             {{if .CanUpload}}
             <form class="upload-form" id="uploadForm" method="POST" enctype="multipart/form-data" action="?upload=1">
-                <input type="file" name="files" class="file-input" multiple id="fileInput">
+                <input type="file" name="files" class="file-input" multiple id="fileInput" style="display:none;">
                 <input type="file" name="directory"  class="file-input" webkitdirectory directory id="dirInput" style="display:none;">
-                <button type="button" class="btn-secondary" onclick="document.getElementById('fileInput').click()">📄 Files</button>
-                <button type="button" class="btn-secondary" onclick="document.getElementById('dirInput').click()">📁 Folder</button>
+                <div class="segmented-control">
+                    <button type="button" id="filesBtn" class="active" onclick="selectFilesMode()">📄 Files</button>
+                    <button type="button" id="folderBtn" onclick="selectFolderMode()">📁 Folder</button>
+                </div>
                 <button type="submit" class="btn-primary" id="uploadBtn" disabled>↑ Upload</button>
             </form>
             {{end}}
+            <button class="btn-primary" onclick="downloadZip()" style="margin-left: auto;">↓ Download ZIP</button>
         </div>
 
         <table id="fileTable">
@@ -363,8 +437,8 @@ const htmlTemplate = `<!DOCTYPE html>
                     <td class="modified">{{.ModTime}}</td>
                     {{if $.CanModify}}
                     <td class="actions">
-                        <button class="action-btn" onclick="renameFile('{{.Path}}', '{{.Name}}')">✎</button>
-                        <button class="action-btn danger" onclick="deleteFile('{{.Path}}', '{{.Name}}')">×</button>
+                        <button class="action-btn" onclick="renameFile('{{.Path}}', '{{.Name}}')" title="Rename file">✎</button>
+                        <button class="action-btn danger" onclick="deleteFile('{{.Path}}', '{{.Name}}')" title="Delete file">×</button>
                     </td>
                     {{end}}
                 </tr>
@@ -386,11 +460,26 @@ const htmlTemplate = `<!DOCTYPE html>
         <div class="preview-content" onclick="event.stopPropagation()" style="max-width: 600px;">
             <span class="preview-close" onclick="closeAbout()">&times;</span>
             <div id="aboutBody" style="padding: 20px;">
-                <h2 style="margin-top: 0; color: #2563eb;">GoServe v1.1</h2>
-                <p style="color: #666; margin-bottom: 20px;">Lightweight HTTP file server with WebDAV support</p>
+                <div style="text-align: center; margin-bottom: 20px;">
+                    <svg id="aboutLogo" width="80" height="80" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+                        <defs>
+                            <linearGradient id="aboutGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" style="stop-color:#00ADD8;stop-opacity:1" />
+                                <stop offset="100%" style="stop-color:#5DC9E2;stop-opacity:1" />
+                            </linearGradient>
+                        </defs>
+                        <path d="M8 24 Q16 12, 24 24 T40 24" stroke="url(#aboutGrad)" stroke-width="4" fill="none" stroke-linecap="round" opacity="0.7"/>
+                        <path d="M8 30 Q16 20, 24 30 T40 30" stroke="url(#aboutGrad)" stroke-width="4" fill="none" stroke-linecap="round" opacity="0.5"/>
+                        <circle cx="24" cy="24" r="8" fill="url(#aboutGrad)"/>
+                        <circle cx="24" cy="24" r="5" fill="#ffffff" id="aboutLogoCenter"/>
+                        <path d="M24 20 L24 28 M24 20 L22 22 M24 20 L26 22" stroke="url(#aboutGrad)" stroke-width="2" stroke-linecap="round" fill="none"/>
+                    </svg>
+                </div>
+                <h2 style="margin-top: 0; color: var(--accent); text-align: center;">GoServe v1.1</h2>
+                <p style="color: var(--text-secondary); margin-bottom: 20px; text-align: center;">Lightweight HTTP file server with WebDAV support</p>
                 
-                <h3 style="color: #2563eb; margin-bottom: 10px;">✨ Features</h3>
-                <ul style="color: #666; line-height: 1.8; margin-bottom: 20px;">
+                <h3 style="color: var(--accent); margin-bottom: 10px;">✨ Features</h3>
+                <ul style="color: var(--text-secondary); line-height: 1.8; margin-bottom: 20px;">
                     <li>📁 Directory browsing with modern UI</li>
                     <li>📂 Directory upload with structure preservation</li>
                     <li>💾 WebDAV server - mount as network drive</li>
@@ -402,46 +491,46 @@ const htmlTemplate = `<!DOCTYPE html>
                     <li>🗜️ Automatic GZIP compression</li>
                 </ul>
                 
-                <h3 style="color: #2563eb; margin-bottom: 10px;">⌨️ Keyboard Shortcuts</h3>
-                <ul style="color: #666; line-height: 1.8; margin-bottom: 20px;">
+                <h3 style="color: var(--accent); margin-bottom: 10px;">⌨️ Keyboard Shortcuts</h3>
+                <ul style="color: var(--text-secondary); line-height: 1.8; margin-bottom: 20px;">
                     <li><kbd>ESC</kbd> - Close preview/about modal</li>
                     <li><kbd>Ctrl+F</kbd> - Focus search (browser default)</li>
                 </ul>
                 
-                <h3 style="color: #2563eb; margin-bottom: 10px;">💾 WebDAV Mount URL</h3>
-                <p style="color: #666; margin-bottom: 5px; font-size: 0.9em;">Copy and paste this URL to mount as network drive:</p>
+                <h3 style="color: var(--accent); margin-bottom: 10px;">💾 WebDAV Mount URL</h3>
+                <p style="color: var(--text-secondary); margin-bottom: 5px; font-size: 0.9em;">Copy and paste this URL to mount as network drive:</p>
                 <input type="text" id="webdavUrl" readonly 
-                    style="width: 100%; padding: 10px; margin-bottom: 10px; font-family: monospace; background: #f5f5f5; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; cursor: text;"
+                    style="width: 100%; padding: 10px; margin-bottom: 10px; font-family: monospace; background: var(--hover-bg); border: 1px solid var(--border-color); border-radius: 4px; font-size: 14px; cursor: text; color: var(--text-primary);"
                     onclick="this.select()">
-                <button onclick="copyWebDAVUrl()" style="padding: 8px 16px; background: #2563eb; color: white; border: none; border-radius: 4px; cursor: pointer; margin-bottom: 20px;">
+                <button onclick="copyWebDAVUrl()" style="padding: 8px 16px; background: var(--accent); color: white; border: none; border-radius: 4px; cursor: pointer; margin-bottom: 20px;">
                     📋 Copy URL
                 </button>
                 <script>
                     document.getElementById('webdavUrl').value = window.location.protocol + '//' + window.location.host + '/webdav/';
                 </script>
                 
-                <h3 style="color: #2563eb; margin-bottom: 10px;">🌐 Share via Tailscale</h3>
-                <p style="color: #666; margin-bottom: 10px; font-size: 0.9em;">
+                <h3 style="color: var(--accent); margin-bottom: 10px;">🌐 Share via Tailscale</h3>
+                <p style="color: var(--text-secondary); margin-bottom: 10px; font-size: 0.9em;">
                     Share this server securely over your Tailscale network or publicly via HTTPS:
                 </p>
-                <div style="background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 6px; padding: 15px; margin-bottom: 20px;">
-                    <p style="color: #666; margin: 0 0 10px 0; font-weight: 600;">📱 Tailscale Serve (Private - Tailnet only):</p>
+                <div style="background: var(--hover-bg); border: 1px solid var(--border-color); border-radius: 6px; padding: 15px; margin-bottom: 20px;">
+                    <p style="color: var(--text-secondary); margin: 0 0 10px 0; font-weight: 600;">📱 Tailscale Serve (Private - Tailnet only):</p>
                     <pre style="background: #1f2937; color: #10b981; padding: 10px; border-radius: 4px; overflow-x: auto; margin: 0 0 10px 0; font-size: 13px;">tailscale serve --bg 8080</pre>
-                    <p style="color: #666; margin: 0 0 15px 0; font-size: 0.85em;">
+                    <p style="color: var(--text-secondary); margin: 0 0 15px 0; font-size: 0.85em;">
                         Share with devices on your Tailscale network. Access via your machine's Tailscale hostname.
                     </p>
                     
-                    <p style="color: #666; margin: 0 0 10px 0; font-weight: 600;">🔓 Tailscale Funnel (Public HTTPS):</p>
+                    <p style="color: var(--text-secondary); margin: 0 0 10px 0; font-weight: 600;">🔓 Tailscale Funnel (Public HTTPS):</p>
                     <pre style="background: #1f2937; color: #10b981; padding: 10px; border-radius: 4px; overflow-x: auto; margin: 0 0 10px 0; font-size: 13px;">tailscale funnel --bg 8080</pre>
-                    <p style="color: #666; margin: 0; font-size: 0.85em;">
-                        Share publicly via HTTPS tunnel. Anyone with the link can access (use with <code style="background: #e5e7eb; padding: 2px 6px; border-radius: 3px;">-logins</code> for auth).
+                    <p style="color: var(--text-secondary); margin: 0; font-size: 0.85em;">
+                        Share publicly via HTTPS tunnel. Anyone with the link can access (use with <code style="background: var(--hover-bg); padding: 2px 6px; border-radius: 3px; color: var(--text-primary);">-logins</code> for auth).
                     </p>
                 </div>
                 
-                <h3 style="color: #2563eb; margin-bottom: 10px;">🔗 Links</h3>
-                <p style="color: #666;">
-                    <a href="https://github.com/staceyw/GoServe" target="_blank" style="color: #2563eb; text-decoration: none;">📦 GitHub Repository</a><br>
-                    <span style="color: #999; font-size: 0.9em;">MIT License • Built with Go 1.25+</span>
+                <h3 style="color: var(--accent); margin-bottom: 10px;">🔗 Links</h3>
+                <p style="color: var(--text-secondary);">
+                    <a href="https://github.com/staceyw/GoServe" target="_blank" style="color: var(--accent); text-decoration: none;">📦 GitHub Repository</a><br>
+                    <span style="color: var(--text-secondary); font-size: 0.9em; opacity: 0.7;">MIT License • Built with Go 1.25+</span>
                 </p>
             </div>
         </div>
@@ -449,16 +538,40 @@ const htmlTemplate = `<!DOCTYPE html>
 
     <script>
         // Dark mode
+        function updateThemeButton(theme) {
+            const btn = document.getElementById('themeBtn');
+            if (theme === 'dark') {
+                btn.textContent = '☀️ Light';
+            } else {
+                btn.textContent = '🌙 Dark';
+            }
+        }
+
+        function updateAboutLogo(theme) {
+            const logoCenter = document.getElementById('aboutLogoCenter');
+            if (logoCenter) {
+                if (theme === 'dark') {
+                    logoCenter.setAttribute('fill', '#2d2d2d');
+                } else {
+                    logoCenter.setAttribute('fill', '#ffffff');
+                }
+            }
+        }
+
         function toggleTheme() {
             const current = document.documentElement.getAttribute('data-theme');
             const next = current === 'dark' ? 'light' : 'dark';
             document.documentElement.setAttribute('data-theme', next);
             localStorage.setItem('theme', next);
+            updateThemeButton(next);
+            updateAboutLogo(next);
         }
         
         // Load saved theme
         const savedTheme = localStorage.getItem('theme') || 'light';
         document.documentElement.setAttribute('data-theme', savedTheme);
+        updateThemeButton(savedTheme);
+        updateAboutLogo(savedTheme);
 
         // Search/filter with wildcard support
         function filterFiles() {
@@ -620,6 +733,8 @@ const htmlTemplate = `<!DOCTYPE html>
         }
 
         function showAbout() {
+            const currentTheme = document.documentElement.getAttribute('data-theme');
+            updateAboutLogo(currentTheme);
             document.getElementById('aboutModal').style.display = 'block';
         }
 
@@ -660,6 +775,18 @@ const htmlTemplate = `<!DOCTYPE html>
 
         // Handle file/folder uploads
         let selectedFiles = [];
+        
+        function selectFilesMode() {
+            document.getElementById('filesBtn').classList.add('active');
+            document.getElementById('folderBtn').classList.remove('active');
+            document.getElementById('fileInput').click();
+        }
+        
+        function selectFolderMode() {
+            document.getElementById('folderBtn').classList.add('active');
+            document.getElementById('filesBtn').classList.remove('active');
+            document.getElementById('dirInput').click();
+        }
         
         document.getElementById('fileInput')?.addEventListener('change', function(e) {
             selectedFiles = Array.from(e.target.files);
@@ -1036,7 +1163,7 @@ func handleUpload(w http.ResponseWriter, r *http.Request, targetDir string) {
 		// Extract relative path from filename (for directory uploads)
 		// For regular files, this is just the filename
 		relativePath := filepath.FromSlash(fileHeader.Filename)
-		
+
 		// Prevent path traversal attacks
 		relativePath = filepath.Clean(relativePath)
 		if strings.Contains(relativePath, "..") {
@@ -1047,7 +1174,7 @@ func handleUpload(w http.ResponseWriter, r *http.Request, targetDir string) {
 
 		// Full destination path
 		destPath := filepath.Join(targetDir, relativePath)
-		
+
 		// Create parent directories if needed
 		destDir := filepath.Dir(destPath)
 		if err := os.MkdirAll(destDir, 0755); err != nil {

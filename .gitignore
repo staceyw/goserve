@@ -24,9 +24,10 @@ main.exe
 # Dependency directories
 vendor/
 
-# IDE files
+# IDE / tool files
 .vscode/
 .idea/
+.claude/
 *.swp
 *.swo
 *~
@@ -41,6 +42,9 @@ game.go
 server.go
 go-serve2.go
 dev/
+
+# Credentials
+logins.txt
 
 # Temporary files
 Temp/

@@ -1,11 +1,11 @@
 # GoServe Login File
 # Format: username:password:permission
-# Permissions: readonly, readwrite, admin
+# Permissions: readonly, readwrite, all
 #
 # readonly   - Can browse and view files only
 # readwrite  - Can browse, view, and upload files
-# admin      - Full access (browse, view, upload, delete, rename)
+# all        - Full access (browse, view, upload, delete, rename)
 
-admin:admin123:admin
+admin:admin123:all
 user:password:readwrite
 guest:guest:readonly

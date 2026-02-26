@@ -166,8 +166,8 @@ a:hover{text-decoration:underline}
         <p>Built-in WebDAV endpoint. Mount as a network drive on Windows, macOS, or Linux.</p>
       </div>
       <div class="feature">
-        <h3>4 Themes</h3>
-        <p>GoServe Light, GoServe Dark, VS Dark, and Monokai Dimmed. Saved in your browser.</p>
+        <h3>12 Themes</h3>
+        <p>Catppuccin, Dracula, Nord, Solarized, Gruvbox, One Dark, Monokai, and more. Saved in your browser.</p>
       </div>
       <div class="feature">
         <h3>File Preview</h3>
@@ -183,7 +183,7 @@ a:hover{text-decoration:underline}
       </div>
       <div class="feature">
         <h3>Authentication</h3>
-        <p>Optional HTTP Basic Auth with three permission levels: readonly, readwrite, and admin.</p>
+        <p>Optional HTTP Basic Auth with three permission levels: readonly, readwrite, and all.</p>
       </div>
       <div class="feature">
         <h3>GZIP Compression</h3>
@@ -205,8 +205,7 @@ a:hover{text-decoration:underline}
       <tbody>
         <tr><td><code>-listen</code></td><td><code>localhost:8080</code></td><td>Address to listen on (repeatable)</td></tr>
         <tr><td><code>-dir</code></td><td><code>.</code></td><td>Directory to serve</td></tr>
-        <tr><td><code>-upload</code></td><td><code>false</code></td><td>Allow file uploads</td></tr>
-        <tr><td><code>-modify</code></td><td><code>false</code></td><td>Allow delete and rename</td></tr>
+        <tr><td><code>-permlevel</code></td><td><code>readonly</code></td><td>Permission level: readonly, readwrite, all</td></tr>
         <tr><td><code>-maxsize</code></td><td><code>100</code></td><td>Max upload size in MB</td></tr>
         <tr><td><code>-logins</code></td><td></td><td>Path to authentication file</td></tr>
         <tr><td><code>-quiet</code></td><td><code>false</code></td><td>Suppress request logs</td></tr>

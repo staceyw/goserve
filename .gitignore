@@ -44,6 +44,7 @@ go-serve2.go
 dev/
 tmp/
 dist/
+MyDrive/
 
 # Credentials
 logins.txt

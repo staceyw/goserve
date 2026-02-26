@@ -37,7 +37,6 @@ type PageData struct {
 	Path        string
 	FullPath    string
 	Files       []FileInfo
-	ShowParent  bool
 	Breadcrumbs []Breadcrumb
 	CanUpload   bool
 	CanModify   bool
@@ -277,17 +276,18 @@ const htmlTemplate = `<!DOCTYPE html>
         }
         h1 { font-size: 24px; margin-bottom: 10px; }
         .toolbar {
-            padding: 12px 20px;
+            padding: 0 20px;
             border-bottom: 1px solid var(--border-color);
             display: flex;
             gap: 15px;
             align-items: center;
+            height: 44px;
         }
         .selection-bar {
             display: none;
             align-items: center;
             gap: 6px;
-            flex: 1;
+            margin-left: auto;
         }
         .selection-bar.active { display: flex; }
         .selection-count {
@@ -302,11 +302,13 @@ const htmlTemplate = `<!DOCTYPE html>
             border: none;
             color: var(--text-secondary);
             cursor: pointer;
-            padding: 6px;
+            padding: 4px;
             border-radius: 4px;
             font-size: 18px;
             line-height: 1;
             transition: all 0.15s;
+            display: flex;
+            align-items: center;
         }
         .sel-btn:hover { background: var(--hover-bg); color: var(--text-primary); }
         .sel-btn.danger:hover { color: #dc3545; }
@@ -490,7 +492,7 @@ const htmlTemplate = `<!DOCTYPE html>
         }
         th {
             text-align: left;
-            padding: 15px 20px;
+            padding: 8px 20px;
             font-weight: 600;
             color: var(--text-primary);
             font-size: 14px;
@@ -501,7 +503,7 @@ const htmlTemplate = `<!DOCTYPE html>
         .sort-arrow { display: inline-block; width: 18px; height: 18px; vertical-align: middle; margin-left: 4px; border-radius: 50%; text-align: center; line-height: 18px; font-size: 13px; }
         th.sorted .sort-arrow { background: var(--accent); color: white; }
         td {
-            padding: 12px 20px;
+            padding: 6px 20px;
             border-bottom: 1px solid var(--border-color);
         }
         tbody tr { cursor: default; user-select: none; }
@@ -528,7 +530,6 @@ const htmlTemplate = `<!DOCTYPE html>
         .file-link:hover { color: var(--accent); }
         .name { font-weight: 500; }
         .size, .modified { color: var(--text-secondary); font-size: 14px; }
-        .parent { background: rgba(255, 243, 205, 0.3); }
         footer {
             padding: 20px;
             text-align: center;
@@ -675,13 +676,6 @@ const htmlTemplate = `<!DOCTYPE html>
                 </tr>
             </thead>
             <tbody>
-                {{if .ShowParent}}
-                <tr class="parent" data-path="../" data-isdir="true">
-                    <td><a href="../" class="file-link"><span class="icon">↑</span><span class="name">..</span></a></td>
-                    <td class="size">-</td>
-                    <td class="modified">-</td>
-                </tr>
-                {{end}}
                 {{range .Files}}
                 <tr data-path="{{.Path}}" data-name="{{.Name}}" data-isdir="{{.IsDir}}" data-size="{{.RawSize}}" data-mod="{{.RawMod}}" {{if .IsEditable}}data-editable="true"{{end}}>
                     <td>
@@ -981,15 +975,7 @@ const htmlTemplate = `<!DOCTYPE html>
                 currentSortDir = 'asc';
             }
 
-            // Separate parent row from sortable rows
-            var parentRow = null;
-            var sortable = [];
-            rows.forEach(function(r) {
-                if (r.classList.contains('parent')) parentRow = r;
-                else sortable.push(r);
-            });
-
-            sortable.sort(function(a, b) {
+            rows.sort(function(a, b) {
                 var av, bv;
                 if (n === 0) {
                     // Name: directories first, then alphabetical
@@ -1013,8 +999,7 @@ const htmlTemplate = `<!DOCTYPE html>
             });
 
             // Re-append in order
-            if (parentRow) tbody.appendChild(parentRow);
-            sortable.forEach(function(r) { tbody.appendChild(r); });
+            rows.forEach(function(r) { tbody.appendChild(r); });
 
             // Update header arrows
             var ths = document.querySelectorAll('#fileTable thead th');
@@ -1178,11 +1163,9 @@ const htmlTemplate = `<!DOCTYPE html>
 
         function updateSelectionBar() {
             var bar = document.getElementById('selectionBar');
-            var crumb = document.getElementById('breadcrumbBar');
             var count = selectedRows.length;
             if (count > 0) {
                 bar.classList.add('active');
-                crumb.style.display = 'none';
                 document.getElementById('selectionCount').textContent = count + ' selected';
                 var single = count === 1;
                 var editBtn = document.getElementById('selEditBtn');
@@ -1191,7 +1174,6 @@ const htmlTemplate = `<!DOCTYPE html>
                 if (renameBtn) renameBtn.style.display = single ? '' : 'none';
             } else {
                 bar.classList.remove('active');
-                crumb.style.display = '';
             }
         }
 
@@ -1310,6 +1292,7 @@ const htmlTemplate = `<!DOCTYPE html>
                 closeEditor();
                 closeNewFolderModal();
                 hideAllMenus();
+                clearSelection();
                 return;
             }
 
@@ -1988,7 +1971,6 @@ func dirHandler(baseDir string, tmpl *template.Template, quiet bool) http.Handle
 			Path:        r.URL.Path,
 			FullPath:    fullPath,
 			Files:       files,
-			ShowParent:  r.URL.Path != "/",
 			Breadcrumbs: buildBreadcrumbs(r.URL.Path),
 			CanUpload:   canUpload,
 			CanModify:   canModify,

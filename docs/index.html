@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GoServe — Lightweight HTTP File Server with WebDAV</title>
+<link rel="icon" href="https://raw.githubusercontent.com/staceyw/GoServe/main/docs/logo.svg" type="image/svg+xml">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background:#1e1e2e;color:#cdd6f4;line-height:1.6}
+a{color:#89b4fa;text-decoration:none}
+a:hover{text-decoration:underline}
+
+.container{max-width:900px;margin:0 auto;padding:0 24px}
+
+/* Hero */
+.hero{text-align:center;padding:60px 0 16px}
+.hero .hero-title{display:inline-flex;align-items:center;gap:12px;margin-bottom:8px}
+.hero .hero-title img{width:36px;height:36px;flex-shrink:0}
+.hero .hero-title h1{font-size:2.4rem;font-weight:700;color:#cdd6f4;margin:0}
+.hero h1 span{color:#89b4fa}
+.hero .tagline{font-size:1.1rem;color:#a6adc8;max-width:600px;margin:0 auto}
+
+/* Install */
+.install{padding:40px 0;text-align:center}
+.install h2{font-size:1.5rem;color:#cdd6f4;margin-bottom:16px}
+.install-tabs{display:inline-flex;gap:0;margin-bottom:20px;border:1px solid #45475a;border-radius:8px;overflow:hidden}
+.install-tab{padding:8px 24px;background:#181825;color:#a6adc8;font-size:0.9rem;font-weight:500;cursor:pointer;border:none;transition:background 0.15s,color 0.15s}
+.install-tab:hover{background:#313244}
+.install-tab.active{background:#89b4fa;color:#1e1e2e}
+.install-panel{display:none}
+.install-panel.active{display:block}
+.install-script{max-width:700px;margin:0 auto;text-align:left}
+.install-script .os-label{font-size:0.85rem;color:#a6adc8;margin-bottom:4px;margin-top:16px}
+.install-script .os-label:first-child{margin-top:0}
+.cmd-wrap{display:flex;align-items:stretch}
+.install-script pre{background:#181825;border:1px solid #313244;border-radius:8px 0 0 8px;padding:14px 16px;overflow-x:auto;font-size:0.85rem;color:#f9e2af;margin-bottom:0;flex:1}
+.copy-btn{background:#181825;border:1px solid #313244;border-left:none;border-radius:0 8px 8px 0;color:#6c7086;font-size:0.75rem;padding:0 14px;cursor:pointer;white-space:nowrap;transition:color 0.15s,background 0.15s}
+.copy-btn:hover{color:#cdd6f4;background:#313244}
+.copy-btn.copied{color:#a6e3a1}
+.install-subtitle{color:#a6adc8;margin-bottom:20px;font-size:0.95rem}
+.download-grid{display:flex;flex-wrap:wrap;gap:12px;justify-content:center}
+.download-btn{display:inline-flex;align-items:center;gap:8px;padding:12px 24px;background:#313244;border:1px solid #45475a;border-radius:8px;color:#cdd6f4;font-size:0.95rem;font-weight:500;transition:background 0.15s,border-color 0.15s}
+.download-btn:hover{background:#45475a;border-color:#585b70;text-decoration:none}
+.download-btn .os{color:#89b4fa;font-weight:700}
+.download-btn .arch{color:#a6adc8;font-size:0.8rem}
+.download-extra{margin-top:16px;font-size:0.85rem;color:#a6adc8}
+.download-extra a{color:#89b4fa}
+
+/* Steps */
+.steps{padding:40px 0}
+.steps h2{font-size:1.5rem;color:#cdd6f4;text-align:center;margin-bottom:24px}
+.step-list{display:flex;flex-wrap:wrap;gap:20px;justify-content:center}
+.step{background:#181825;border:1px solid #313244;border-radius:8px;padding:20px;flex:1;min-width:220px;max-width:280px}
+.step .num{display:inline-block;width:28px;height:28px;line-height:28px;text-align:center;background:#89b4fa;color:#1e1e2e;border-radius:50%;font-weight:700;font-size:0.85rem;margin-bottom:8px}
+.step h3{font-size:0.95rem;color:#cdd6f4;margin-bottom:4px}
+.step p{font-size:0.85rem;color:#a6adc8}
+.step code{background:#313244;padding:2px 6px;border-radius:4px;font-size:0.8rem;color:#f9e2af}
+
+/* Features */
+.features{padding:40px 0}
+.features h2{font-size:1.5rem;color:#cdd6f4;text-align:center;margin-bottom:20px}
+.feature-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:16px}
+.feature{background:#181825;border:1px solid #313244;border-radius:8px;padding:16px}
+.feature h3{font-size:0.9rem;color:#89b4fa;margin-bottom:4px}
+.feature p{font-size:0.85rem;color:#a6adc8}
+
+/* CLI */
+.cli{padding:40px 0}
+.cli h2{font-size:1.5rem;color:#cdd6f4;text-align:center;margin-bottom:20px}
+.cli-table{max-width:700px;margin:0 auto;border-collapse:collapse;width:100%}
+.cli-table th,.cli-table td{text-align:left;padding:10px 14px;border-bottom:1px solid #313244;font-size:0.85rem}
+.cli-table th{color:#89b4fa;font-weight:600;background:#181825}
+.cli-table td{color:#a6adc8}
+.cli-table code{background:#313244;padding:2px 6px;border-radius:4px;font-size:0.8rem;color:#f9e2af}
+
+/* Footer */
+.footer{text-align:center;padding:40px 0 60px;color:#6c7086;font-size:0.85rem;border-top:1px solid #313244;margin-top:20px}
+.footer a{color:#89b4fa}
+</style>
+</head>
+<body>
+
+<div class="container">
+
+  <div class="hero">
+    <div class="hero-title">
+      <img src="logo.svg" alt="" />
+      <h1>Go<span>Serve</span></h1>
+    </div>
+    <p class="tagline">Lightweight HTTP file server with WebDAV support in a single binary. Upload, download, edit, preview, and manage files from any browser.</p>
+  </div>
+
+  <div class="install" id="download">
+    <h2>Install <span id="latest-ver" style="font-size:0.75rem;color:#a6adc8;font-weight:400"></span></h2>
+    <div class="install-tabs">
+      <button class="install-tab active" onclick="showTab('script')">Script</button>
+      <button class="install-tab" onclick="showTab('manual')">Manual Download</button>
+    </div>
+
+    <div id="tab-script" class="install-panel active">
+      <div class="install-script">
+        <div class="os-label">Linux / macOS</div>
+        <div class="cmd-wrap">
+          <pre>curl -fsSL https://raw.githubusercontent.com/staceyw/GoServe/main/scripts/install.sh | bash</pre>
+          <button class="copy-btn" onclick="copyCmd(this)">Copy</button>
+        </div>
+        <div class="os-label">Windows (PowerShell)</div>
+        <div class="cmd-wrap">
+          <pre>iex (irm https://raw.githubusercontent.com/staceyw/GoServe/main/scripts/install.ps1)</pre>
+          <button class="copy-btn" onclick="copyCmd(this)">Copy</button>
+        </div>
+      </div>
+      <p class="download-extra" style="text-align:center;margin-top:20px">Downloads the binary into the current directory. Ready to run immediately.</p>
+    </div>
+
+    <div id="tab-manual" class="install-panel">
+      <p class="install-subtitle">Pick your platform binary.</p>
+      <div class="download-grid">
+        <a class="download-btn" href="https://github.com/staceyw/GoServe/releases/latest/download/goserve-windows-amd64.exe">
+          <span class="os">Windows</span><span class="arch">x64</span>
+        </a>
+        <a class="download-btn" href="https://github.com/staceyw/GoServe/releases/latest/download/goserve-linux-amd64">
+          <span class="os">Linux</span><span class="arch">x64</span>
+        </a>
+        <a class="download-btn" href="https://github.com/staceyw/GoServe/releases/latest/download/goserve-linux-arm64">
+          <span class="os">Linux</span><span class="arch">ARM64 / Pi</span>
+        </a>
+        <a class="download-btn" href="https://github.com/staceyw/GoServe/releases/latest/download/goserve-darwin-arm64">
+          <span class="os">macOS</span><span class="arch">Apple Silicon</span>
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <div class="steps">
+    <h2>Get Started</h2>
+    <div class="step-list">
+      <div class="step">
+        <div class="num">1</div>
+        <h3>Download</h3>
+        <p>Use the install script above or grab a binary for your platform.</p>
+      </div>
+      <div class="step">
+        <div class="num">2</div>
+        <h3>Run</h3>
+        <p>Serve the current directory:<br><code>./goserve</code> or <code>./goserve -upload -modify</code></p>
+      </div>
+      <div class="step">
+        <div class="num">3</div>
+        <h3>Browse</h3>
+        <p>Open <code>http://localhost:8080</code> in your browser.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="features">
+    <h2>Features</h2>
+    <div class="feature-grid">
+      <div class="feature">
+        <h3>File Management</h3>
+        <p>Upload files and folders, rename, delete, and edit text files with syntax highlighting — all from the browser.</p>
+      </div>
+      <div class="feature">
+        <h3>WebDAV Server</h3>
+        <p>Built-in WebDAV endpoint. Mount as a network drive on Windows, macOS, or Linux.</p>
+      </div>
+      <div class="feature">
+        <h3>4 Themes</h3>
+        <p>GoServe Light, GoServe Dark, VS Dark, and Monokai Dimmed. Saved in your browser.</p>
+      </div>
+      <div class="feature">
+        <h3>File Preview</h3>
+        <p>Preview images, text, markdown, and code files directly in the browser without downloading.</p>
+      </div>
+      <div class="feature">
+        <h3>Search &amp; Filter</h3>
+        <p>Real-time search with wildcard support. Use <code>*.go</code>, <code>test*</code>, or <code>*config*</code> patterns.</p>
+      </div>
+      <div class="feature">
+        <h3>ZIP Download</h3>
+        <p>Download entire directories as ZIP archives with one click.</p>
+      </div>
+      <div class="feature">
+        <h3>Authentication</h3>
+        <p>Optional HTTP Basic Auth with three permission levels: readonly, readwrite, and admin.</p>
+      </div>
+      <div class="feature">
+        <h3>GZIP Compression</h3>
+        <p>Automatic response compression for faster transfers over slow networks.</p>
+      </div>
+      <div class="feature">
+        <h3>Single Binary</h3>
+        <p>All HTML, CSS, and JS embedded. ~8 MB, pure Go, no dependencies to install. Cross-platform.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="cli" id="cli">
+    <h2>Command Line Flags</h2>
+    <table class="cli-table">
+      <thead>
+        <tr><th>Flag</th><th>Default</th><th>Description</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>-listen</code></td><td><code>localhost:8080</code></td><td>Address to listen on (repeatable)</td></tr>
+        <tr><td><code>-dir</code></td><td><code>.</code></td><td>Directory to serve</td></tr>
+        <tr><td><code>-upload</code></td><td><code>false</code></td><td>Allow file uploads</td></tr>
+        <tr><td><code>-modify</code></td><td><code>false</code></td><td>Allow delete and rename</td></tr>
+        <tr><td><code>-maxsize</code></td><td><code>100</code></td><td>Max upload size in MB</td></tr>
+        <tr><td><code>-logins</code></td><td></td><td>Path to authentication file</td></tr>
+        <tr><td><code>-quiet</code></td><td><code>false</code></td><td>Suppress request logs</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="footer">
+    <p><a href="https://github.com/staceyw/GoServe">GitHub</a> &middot; <a href="#cli">CLI Reference</a> &middot; <a href="https://github.com/staceyw/GoServe/releases">All Releases</a></p>
+    <p style="margin-top:8px">MIT License</p>
+  </div>
+
+</div>
+
+<script>
+function showTab(name){
+  document.querySelectorAll('.install-tab').forEach(function(b){b.classList.remove('active')})
+  document.querySelectorAll('.install-panel').forEach(function(p){p.classList.remove('active')})
+  document.querySelector('[onclick="showTab(\''+name+'\')"]').classList.add('active')
+  document.getElementById('tab-'+name).classList.add('active')
+}
+function copyCmd(btn){
+  var pre=btn.parentElement.querySelector('pre')
+  var text=pre.textContent.trim()
+  navigator.clipboard.writeText(text).then(function(){
+    btn.textContent='Copied!'
+    btn.classList.add('copied')
+    setTimeout(function(){btn.textContent='Copy';btn.classList.remove('copied')},1500)
+  })
+}
+fetch('https://api.github.com/repos/staceyw/GoServe/releases/latest')
+  .then(function(r){return r.json()})
+  .then(function(d){if(d.tag_name)document.getElementById('latest-ver').textContent='— '+d.tag_name})
+  .catch(function(){})
+</script>
+</body>
+</html>

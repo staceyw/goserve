@@ -52,6 +52,17 @@ type User struct {
 	Permission string // readonly, readwrite, admin
 }
 
+type stringSlice []string
+
+func (s *stringSlice) String() string {
+	return strings.Join(*s, ", ")
+}
+
+func (s *stringSlice) Set(value string) error {
+	*s = append(*s, value)
+	return nil
+}
+
 var (
 	maxUploadSize int64
 	allowUpload   bool
@@ -88,7 +99,7 @@ const htmlTemplate = `<!DOCTYPE html>
             --hover-bg: #f8f9fa;
             --accent: #00ADD8;
         }
-        [data-theme="dark"] {
+        [data-theme="goserve-dark"] {
             --bg-primary: #1a1a1a;
             --bg-secondary: #2d2d2d;
             --bg-header: linear-gradient(135deg, #0891b2 0%, #06b6d4 100%);
@@ -97,6 +108,26 @@ const htmlTemplate = `<!DOCTYPE html>
             --border-color: #4a5568;
             --hover-bg: #3d3d3d;
             --accent: #22d3ee;
+        }
+        [data-theme="vs-dark"] {
+            --bg-primary: #1e1e1e;
+            --bg-secondary: #252526;
+            --bg-header: linear-gradient(135deg, #264f78 0%, #37699e 100%);
+            --text-primary: #d4d4d4;
+            --text-secondary: #858585;
+            --border-color: #3c3c3c;
+            --hover-bg: #2a2d2e;
+            --accent: #007acc;
+        }
+        [data-theme="monokai-dimmed"] {
+            --bg-primary: #1e1e1e;
+            --bg-secondary: #272822;
+            --bg-header: linear-gradient(135deg, #62532e 0%, #8a753f 100%);
+            --text-primary: #c5c8c6;
+            --text-secondary: #75715e;
+            --border-color: #464741;
+            --hover-bg: #3e3d32;
+            --accent: #e6db74;
         }
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -395,7 +426,12 @@ const htmlTemplate = `<!DOCTYPE html>
                 {{end}}
             </div>
             <div class="controls">
-                <button class="btn-primary" id="themeBtn" onclick="toggleTheme()">◐ Theme</button>
+                <select id="themeSelect" class="btn" onchange="changeTheme(this.value)" style="cursor:pointer;">
+                    <option value="light">GoServe Light</option>
+                    <option value="goserve-dark">GoServe Dark</option>
+                    <option value="vs-dark">VS Dark</option>
+                    <option value="monokai-dimmed">Monokai Dimmed</option>
+                </select>
                 <button class="btn-primary" onclick="showAbout()">ℹ️ About</button>
             </div>
         </div>
@@ -562,45 +598,36 @@ const htmlTemplate = `<!DOCTYPE html>
     </div>
 
     <script>
-        // Dark mode
-        function updateThemeButton(theme) {
-            const btn = document.getElementById('themeBtn');
-            if (theme === 'dark') {
-                btn.textContent = '☀️ Light';
-            } else {
-                btn.textContent = '🌙 Dark';
-            }
+        // Theme system
+        function isDarkTheme(theme) {
+            return theme !== 'light';
         }
 
         function updateAboutLogo(theme) {
             const logoCenter = document.getElementById('aboutLogoCenter');
             if (logoCenter) {
-                if (theme === 'dark') {
-                    logoCenter.setAttribute('fill', '#2d2d2d');
-                } else {
-                    logoCenter.setAttribute('fill', '#ffffff');
-                }
+                logoCenter.setAttribute('fill', isDarkTheme(theme) ? '#2d2d2d' : '#ffffff');
             }
         }
 
-        function toggleTheme() {
-            const current = document.documentElement.getAttribute('data-theme');
-            const next = current === 'dark' ? 'light' : 'dark';
-            document.documentElement.setAttribute('data-theme', next);
-            localStorage.setItem('theme', next);
-            updateThemeButton(next);
-            updateAboutLogo(next);
-            // Update CodeMirror theme if editor is initialized
+        function changeTheme(theme) {
+            if (theme === 'light') {
+                document.documentElement.removeAttribute('data-theme');
+            } else {
+                document.documentElement.setAttribute('data-theme', theme);
+            }
+            localStorage.setItem('theme', theme);
+            document.getElementById('themeSelect').value = theme;
+            updateAboutLogo(theme);
             if (editor) {
-                editor.setOption('theme', next === 'dark' ? 'monokai' : 'default');
+                editor.setOption('theme', isDarkTheme(theme) ? 'monokai' : 'default');
             }
         }
-        
+
         // Load saved theme
-        const savedTheme = localStorage.getItem('theme') || 'light';
-        document.documentElement.setAttribute('data-theme', savedTheme);
-        updateThemeButton(savedTheme);
-        updateAboutLogo(savedTheme);
+        let savedTheme = localStorage.getItem('theme') || 'light';
+        if (savedTheme === 'dark') savedTheme = 'goserve-dark';
+        changeTheme(savedTheme);
 
         // Search/filter with wildcard support
         function filterFiles() {
@@ -731,10 +758,10 @@ const htmlTemplate = `<!DOCTYPE html>
                     
                     // Initialize CodeMirror if not already initialized
                     if (!editor) {
-                        const currentTheme = document.documentElement.getAttribute('data-theme');
+                        const currentTheme = localStorage.getItem('theme') || 'light';
                         editor = CodeMirror.fromTextArea(document.getElementById('editor'), {
                             lineNumbers: true,
-                            theme: currentTheme === 'dark' ? 'monokai' : 'default',
+                            theme: isDarkTheme(currentTheme) ? 'monokai' : 'default',
                             mode: getMode(name),
                             indentUnit: 4,
                             lineWrapping: true
@@ -839,8 +866,7 @@ const htmlTemplate = `<!DOCTYPE html>
         }
 
         function showAbout() {
-            const currentTheme = document.documentElement.getAttribute('data-theme');
-            updateAboutLogo(currentTheme);
+            updateAboutLogo(localStorage.getItem('theme') || 'light');
             document.getElementById('aboutModal').style.display = 'block';
         }
 
@@ -1125,8 +1151,9 @@ func dirHandler(baseDir string, tmpl *template.Template, quiet bool) http.Handle
 		urlPath := filepath.Clean(r.URL.Path)
 		fullPath := filepath.Join(baseDir, urlPath)
 
-		// Security check
-		if !strings.HasPrefix(fullPath, baseDir) {
+		// Security check - use baseDir + separator to prevent prefix collision
+		// e.g., baseDir="/data" must not match "/database"
+		if !strings.HasPrefix(fullPath+string(filepath.Separator), baseDir+string(filepath.Separator)) {
 			http.Error(w, "Forbidden", http.StatusForbidden)
 			return
 		}
@@ -1237,7 +1264,6 @@ func dirHandler(baseDir string, tmpl *template.Template, quiet bool) http.Handle
 			urlPath := path.Join(r.URL.Path, name)
 			if entry.IsDir() {
 				urlPath += "/"
-				name += "/"
 			}
 
 			size := ""
@@ -1366,7 +1392,7 @@ func handleDelete(w http.ResponseWriter, r *http.Request, baseDir string) {
 	path := r.URL.Query().Get("delete")
 	fullPath := filepath.Join(baseDir, path)
 
-	if !strings.HasPrefix(fullPath, baseDir) {
+	if !strings.HasPrefix(fullPath+string(filepath.Separator), baseDir+string(filepath.Separator)) {
 		w.Header().Set("Content-Type", "application/json")
 		fmt.Fprintf(w, `{"success": false, "error": "Invalid path"}`)
 		return
@@ -1388,7 +1414,8 @@ func handleRename(w http.ResponseWriter, r *http.Request, baseDir string) {
 	oldFullPath := filepath.Join(baseDir, oldPath)
 	newFullPath := filepath.Join(filepath.Dir(oldFullPath), newName)
 
-	if !strings.HasPrefix(oldFullPath, baseDir) || !strings.HasPrefix(newFullPath, baseDir) {
+	if !strings.HasPrefix(oldFullPath+string(filepath.Separator), baseDir+string(filepath.Separator)) ||
+		!strings.HasPrefix(newFullPath+string(filepath.Separator), baseDir+string(filepath.Separator)) {
 		w.Header().Set("Content-Type", "application/json")
 		fmt.Fprintf(w, `{"success": false, "error": "Invalid path"}`)
 		return
@@ -1405,7 +1432,7 @@ func handleRename(w http.ResponseWriter, r *http.Request, baseDir string) {
 
 func handleEdit(w http.ResponseWriter, r *http.Request, fullPath, baseDir string) {
 	// Security check
-	if !strings.HasPrefix(fullPath, baseDir) {
+	if !strings.HasPrefix(fullPath+string(filepath.Separator), baseDir+string(filepath.Separator)) {
 		w.Header().Set("Content-Type", "application/json")
 		fmt.Fprintf(w, `{"success": false, "error": "Invalid path"}`)
 		return
@@ -1511,8 +1538,12 @@ func main() {
 		fmt.Fprintf(os.Stderr, "\nEXAMPLES:\n")
 		fmt.Fprintf(os.Stderr, "  Basic usage (serve current directory):\n")
 		fmt.Fprintf(os.Stderr, "    go run main.go\n\n")
-		fmt.Fprintf(os.Stderr, "  Serve on custom port:\n")
-		fmt.Fprintf(os.Stderr, "    go run main.go -port 3000\n\n")
+		fmt.Fprintf(os.Stderr, "  Listen on custom address:\n")
+		fmt.Fprintf(os.Stderr, "    go run main.go -listen :3000\n\n")
+		fmt.Fprintf(os.Stderr, "  Listen on specific interface:\n")
+		fmt.Fprintf(os.Stderr, "    go run main.go -listen 127.0.0.1:8080\n\n")
+		fmt.Fprintf(os.Stderr, "  Multiple listeners:\n")
+		fmt.Fprintf(os.Stderr, "    go run main.go -listen :8080 -listen 127.0.0.1:9090\n\n")
 		fmt.Fprintf(os.Stderr, "  Serve specific directory:\n")
 		fmt.Fprintf(os.Stderr, "    go run main.go -dir C:\\\\Downloads\n\n")
 		fmt.Fprintf(os.Stderr, "  Enable file uploads (max 50MB):\n")
@@ -1524,7 +1555,7 @@ func main() {
 		fmt.Fprintf(os.Stderr, "  Quiet mode (no request logs):\n")
 		fmt.Fprintf(os.Stderr, "    go run main.go -quiet\n\n")
 		fmt.Fprintf(os.Stderr, "  Combined example:\n")
-		fmt.Fprintf(os.Stderr, "    go run main.go -port 8000 -dir /var/www -upload -modify -logins logins.txt\n\n")
+		fmt.Fprintf(os.Stderr, "    go run main.go -listen :8000 -dir /var/www -upload -modify -logins logins.txt\n\n")
 		fmt.Fprintf(os.Stderr, "TAILSCALE SHARING:\n")
 		fmt.Fprintf(os.Stderr, "  Share privately on your Tailscale network:\n")
 		fmt.Fprintf(os.Stderr, "    go run main.go &\n")
@@ -1535,7 +1566,8 @@ func main() {
 	}
 
 	// Command line flags
-	port := flag.String("port", "8080", "Port to listen on")
+	var listenAddrs stringSlice
+	flag.Var(&listenAddrs, "listen", "Address to listen on in host:port format (repeatable, default :8080)")
 	dir := flag.String("dir", ".", "Directory to serve")
 	quiet := flag.Bool("quiet", false, "Quiet mode - only show errors")
 	uploadFlag := flag.Bool("upload", false, "Allow file uploads")
@@ -1543,6 +1575,10 @@ func main() {
 	maxSize := flag.Int64("maxsize", 100, "Max upload size in MB")
 	loginFile := flag.String("logins", "", "Enable authentication with login file (format: username:password:permission)")
 	flag.Parse()
+
+	if len(listenAddrs) == 0 {
+		listenAddrs = stringSlice{"localhost:8080"}
+	}
 
 	allowUpload = *uploadFlag
 	allowModify = *modifyFlag
@@ -1609,20 +1645,25 @@ func main() {
 	}
 	http.HandleFunc("/", gzipMiddleware(handler))
 
-	// Try to create listener first
-	addr := ":" + *port
-	listener, err := net.Listen("tcp", addr)
-	if err != nil {
-		fmt.Printf("\n❌ ERROR: Cannot start server on port %s\n", *port)
-		if strings.Contains(err.Error(), "address already in use") ||
-			strings.Contains(err.Error(), "Only one usage") {
-			fmt.Printf("   Port %s is already in use by another application.\n", *port)
-			fmt.Println("   Try a different port with: go run server3.go -port 3000")
-		} else {
-			fmt.Printf("   %v\n", err)
+	// Create listeners
+	var listeners []net.Listener
+	for _, addr := range listenAddrs {
+		ln, err := net.Listen("tcp", addr)
+		if err != nil {
+			for _, l := range listeners {
+				l.Close()
+			}
+			fmt.Printf("\n❌ ERROR: Cannot listen on %s\n", addr)
+			if strings.Contains(err.Error(), "address already in use") ||
+				strings.Contains(err.Error(), "Only one usage") {
+				fmt.Printf("   %s is already in use by another application.\n", addr)
+			} else {
+				fmt.Printf("   %v\n", err)
+			}
+			fmt.Println()
+			os.Exit(1)
 		}
-		fmt.Println()
-		os.Exit(1)
+		listeners = append(listeners, ln)
 	}
 
 	// Display startup info
@@ -1631,21 +1672,38 @@ func main() {
 	fmt.Println("╚════════════════════════════════════════╝")
 	fmt.Printf("\n📂 Serving: %s\n", absPath)
 	fmt.Printf("⏰ Started: %s\n", time.Now().Format("2006-01-02 15:04:05"))
-	fmt.Println("\n🌐 Web Interface:")
-	fmt.Printf("   • http://localhost:%s\n", *port)
-	fmt.Printf("   • http://127.0.0.1:%s\n", *port)
-	fmt.Println("\n📁 WebDAV Mount:")
-	fmt.Printf("   • http://localhost:%s/webdav/\n", *port)
 
-	// Show network addresses
-	addrs, err := net.InterfaceAddrs()
-	if err == nil {
-		for _, addr := range addrs {
-			if ipnet, ok := addr.(*net.IPNet); ok && !ipnet.IP.IsLoopback() {
-				if ipnet.IP.To4() != nil {
-					fmt.Printf("   • http://%s:%s\n", ipnet.IP.String(), *port)
+	fmt.Println("\n🌐 Listeners:")
+	var wildcardPorts []string
+	for _, ln := range listeners {
+		host, port, _ := net.SplitHostPort(ln.Addr().String())
+		if host == "::" || host == "0.0.0.0" || host == "" {
+			fmt.Printf("   • http://localhost:%s\n", port)
+			wildcardPorts = append(wildcardPorts, port)
+		} else {
+			fmt.Printf("   • http://%s:%s\n", host, port)
+		}
+	}
+	if len(wildcardPorts) > 0 {
+		ifaces, err := net.InterfaceAddrs()
+		if err == nil {
+			for _, a := range ifaces {
+				if ipnet, ok := a.(*net.IPNet); ok && !ipnet.IP.IsLoopback() && ipnet.IP.To4() != nil {
+					for _, port := range wildcardPorts {
+						fmt.Printf("   • http://%s:%s (LAN)\n", ipnet.IP.String(), port)
+					}
 				}
 			}
+		}
+	}
+
+	fmt.Println("\n📁 WebDAV:")
+	for _, ln := range listeners {
+		host, port, _ := net.SplitHostPort(ln.Addr().String())
+		if host == "::" || host == "0.0.0.0" || host == "" {
+			fmt.Printf("   • http://localhost:%s/webdav/\n", port)
+		} else {
+			fmt.Printf("   • http://%s:%s/webdav/\n", host, port)
 		}
 	}
 
@@ -1668,8 +1726,12 @@ func main() {
 	fmt.Println("\n💡 Press Ctrl+C to stop")
 	fmt.Println("════════════════════════════════════════\n")
 
-	// Start server
-	if err := http.Serve(listener, nil); err != nil {
-		log.Fatal(err)
+	// Start server on all listeners
+	errc := make(chan error, 1)
+	for _, ln := range listeners {
+		go func(l net.Listener) {
+			errc <- http.Serve(l, nil)
+		}(ln)
 	}
+	log.Fatal(<-errc)
 }

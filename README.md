@@ -1,4 +1,4 @@
-# GoServe
+# Go-Serve
 
 A lightweight, feature-rich HTTP file server written in Go with WebDAV support.
 

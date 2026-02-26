@@ -35,11 +35,12 @@ vendor/
 .DS_Store
 Thumbs.db
 
-# Learning/test files
+# Learning/test/dev files
 My.go
 game.go
 server.go
 go-serve2.go
+dev/
 
 # Temporary files
 Temp/

@@ -21,6 +21,10 @@ a:hover{text-decoration:underline}
 .hero h1 span{color:#89b4fa}
 .hero .tagline{font-size:1.1rem;color:#a6adc8;max-width:600px;margin:0 auto}
 
+/* Screenshot */
+.screenshot{text-align:center;padding:32px 0}
+.screenshot img{max-width:100%;border-radius:8px;border:1px solid #313244;box-shadow:0 8px 32px rgba(0,0,0,0.4)}
+
 /* Install */
 .install{padding:40px 0;text-align:center}
 .install h2{font-size:1.5rem;color:#cdd6f4;margin-bottom:16px}
@@ -91,6 +95,10 @@ a:hover{text-decoration:underline}
     <p class="tagline">Lightweight HTTP file server with WebDAV support in a single binary. Upload, download, edit, preview, and manage files from any browser.</p>
   </div>
 
+  <div class="screenshot">
+    <img src="screenshot.svg" alt="GoServe screenshot">
+  </div>
+
   <div class="install" id="download">
     <h2>Install <span id="latest-ver" style="font-size:0.75rem;color:#a6adc8;font-weight:400"></span></h2>
     <div class="install-tabs">
@@ -120,6 +128,9 @@ a:hover{text-decoration:underline}
         <a class="download-btn" href="https://github.com/staceyw/goserve/releases/latest/download/goserve-windows-amd64.exe">
           <span class="os">Windows</span><span class="arch">x64</span>
         </a>
+        <a class="download-btn" href="https://github.com/staceyw/goserve/releases/latest/download/goserve-windows-arm64.exe">
+          <span class="os">Windows</span><span class="arch">ARM64</span>
+        </a>
         <a class="download-btn" href="https://github.com/staceyw/goserve/releases/latest/download/goserve-linux-amd64">
           <span class="os">Linux</span><span class="arch">x64</span>
         </a>
@@ -144,7 +155,7 @@ a:hover{text-decoration:underline}
       <div class="step">
         <div class="num">2</div>
         <h3>Run</h3>
-        <p>Serve the current directory:<br><code>./goserve</code> or <code>./goserve -upload -modify</code></p>
+        <p>Serve the current directory:<br><code>./goserve</code> or <code>./goserve -permlevel all</code></p>
       </div>
       <div class="step">
         <div class="num">3</div>

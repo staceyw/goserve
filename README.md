@@ -1,6 +1,6 @@
 # GoServe
 
-A lightweight, feature-rich HTTP file server written in Go with WebDAV support. Single binary, 12 themes, no dependencies.
+A lightweight, feature-rich HTTP file server written in Go with WebDAV support. Single binary, 12 themes, no dependencies. Repatriate your Cloud Drives. 
 
 ## Features
 
@@ -20,15 +20,15 @@ A lightweight, feature-rich HTTP file server written in Go with WebDAV support. 
 
 **Linux / macOS:**
 ```bash
-curl -fsSL https://raw.githubusercontent.com/staceyw/GoServe/main/scripts/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/staceyw/goserve/main/scripts/install.sh | bash
 ```
 
 **Windows (PowerShell):**
 ```powershell
-iex (irm https://raw.githubusercontent.com/staceyw/GoServe/main/scripts/install.ps1)
+iex (irm https://raw.githubusercontent.com/staceyw/goserve/main/scripts/install.ps1)
 ```
 
-Or download a binary from [Releases](https://github.com/staceyw/GoServe/releases).
+Or download a binary from [Releases](https://github.com/staceyw/goserve/releases).
 
 ### Build from source
 

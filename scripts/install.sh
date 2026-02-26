@@ -1,9 +1,9 @@
 #!/bin/sh
-# GoServe installer for Linux and macOS.
-# Usage:  curl -fsSL https://raw.githubusercontent.com/staceyw/GoServe/main/scripts/install.sh | bash
+# goserve installer for Linux and macOS.
+# Usage:  curl -fsSL https://raw.githubusercontent.com/staceyw/goserve/main/scripts/install.sh | bash
 set -e
 
-REPO="staceyw/GoServe"
+REPO="staceyw/goserve"
 INSTALL_DIR="$(pwd)"
 BASE_URL="https://github.com/$REPO/releases/latest/download"
 
@@ -38,6 +38,7 @@ echo "  Install to: ${INSTALL_DIR}/"
 echo ""
 echo "This will download into ${INSTALL_DIR}/:"
 echo "  - goserve  (binary)"
+echo "  - README.txt"
 echo ""
 
 # Check for curl or wget
@@ -77,6 +78,7 @@ download() {
 
 echo ""
 download "${BASE_URL}/${BINARY}" "${INSTALL_DIR}/goserve"
+download "${BASE_URL}/README.txt" "${INSTALL_DIR}/README.txt"
 
 chmod +x "${INSTALL_DIR}/goserve"
 

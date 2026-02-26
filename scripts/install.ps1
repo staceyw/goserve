@@ -1,11 +1,11 @@
-# GoServe installer for Windows (PowerShell).
-# Usage:  irm https://raw.githubusercontent.com/staceyw/GoServe/main/scripts/install.ps1 | iex
+# goserve installer for Windows (PowerShell).
+# Usage:  irm https://raw.githubusercontent.com/staceyw/goserve/main/scripts/install.ps1 | iex
 #   - or -
-# Usage:  iex (irm https://raw.githubusercontent.com/staceyw/GoServe/main/scripts/install.ps1)
+# Usage:  iex (irm https://raw.githubusercontent.com/staceyw/goserve/main/scripts/install.ps1)
 
 $ErrorActionPreference = "Stop"
 
-$Repo = "staceyw/GoServe"
+$Repo = "staceyw/goserve"
 $InstallDir = $PWD.Path
 $BaseURL = "https://github.com/$Repo/releases/latest/download"
 
@@ -34,6 +34,7 @@ Write-Host "  Install to: $InstallDir\"
 Write-Host ""
 Write-Host "This will download into ${InstallDir}\:"
 Write-Host "  - goserve.exe  (binary)"
+Write-Host "  - README.txt"
 Write-Host ""
 
 # Prompt for confirmation
@@ -58,6 +59,7 @@ function Download-File($url, $dest) {
 
 Write-Host ""
 Download-File "$BaseURL/$Binary" (Join-Path $InstallDir "goserve.exe")
+Download-File "$BaseURL/README.txt" (Join-Path $InstallDir "README.txt")
 
 # --- Done -------------------------------------------------------------------
 

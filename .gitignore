@@ -42,6 +42,8 @@ game.go
 server.go
 go-serve2.go
 dev/
+tmp/
+dist/
 
 # Credentials
 logins.txt

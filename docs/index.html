@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>GoServe — Lightweight HTTP File Server with WebDAV</title>
-<link rel="icon" href="https://raw.githubusercontent.com/staceyw/GoServe/main/docs/logo.svg" type="image/svg+xml">
+<link rel="icon" href="https://raw.githubusercontent.com/staceyw/goserve/main/docs/logo.svg" type="image/svg+xml">
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background:#1e1e2e;color:#cdd6f4;line-height:1.6}
@@ -102,12 +102,12 @@ a:hover{text-decoration:underline}
       <div class="install-script">
         <div class="os-label">Linux / macOS</div>
         <div class="cmd-wrap">
-          <pre>curl -fsSL https://raw.githubusercontent.com/staceyw/GoServe/main/scripts/install.sh | bash</pre>
+          <pre>curl -fsSL https://raw.githubusercontent.com/staceyw/goserve/main/scripts/install.sh | bash</pre>
           <button class="copy-btn" onclick="copyCmd(this)">Copy</button>
         </div>
         <div class="os-label">Windows (PowerShell)</div>
         <div class="cmd-wrap">
-          <pre>iex (irm https://raw.githubusercontent.com/staceyw/GoServe/main/scripts/install.ps1)</pre>
+          <pre>iex (irm https://raw.githubusercontent.com/staceyw/goserve/main/scripts/install.ps1)</pre>
           <button class="copy-btn" onclick="copyCmd(this)">Copy</button>
         </div>
       </div>
@@ -117,16 +117,16 @@ a:hover{text-decoration:underline}
     <div id="tab-manual" class="install-panel">
       <p class="install-subtitle">Pick your platform binary.</p>
       <div class="download-grid">
-        <a class="download-btn" href="https://github.com/staceyw/GoServe/releases/latest/download/goserve-windows-amd64.exe">
+        <a class="download-btn" href="https://github.com/staceyw/goserve/releases/latest/download/goserve-windows-amd64.exe">
           <span class="os">Windows</span><span class="arch">x64</span>
         </a>
-        <a class="download-btn" href="https://github.com/staceyw/GoServe/releases/latest/download/goserve-linux-amd64">
+        <a class="download-btn" href="https://github.com/staceyw/goserve/releases/latest/download/goserve-linux-amd64">
           <span class="os">Linux</span><span class="arch">x64</span>
         </a>
-        <a class="download-btn" href="https://github.com/staceyw/GoServe/releases/latest/download/goserve-linux-arm64">
+        <a class="download-btn" href="https://github.com/staceyw/goserve/releases/latest/download/goserve-linux-arm64">
           <span class="os">Linux</span><span class="arch">ARM64 / Pi</span>
         </a>
-        <a class="download-btn" href="https://github.com/staceyw/GoServe/releases/latest/download/goserve-darwin-arm64">
+        <a class="download-btn" href="https://github.com/staceyw/goserve/releases/latest/download/goserve-darwin-arm64">
           <span class="os">macOS</span><span class="arch">Apple Silicon</span>
         </a>
       </div>
@@ -214,7 +214,7 @@ a:hover{text-decoration:underline}
   </div>
 
   <div class="footer">
-    <p><a href="https://github.com/staceyw/GoServe">GitHub</a> &middot; <a href="#cli">CLI Reference</a> &middot; <a href="https://github.com/staceyw/GoServe/releases">All Releases</a></p>
+    <p><a href="https://github.com/staceyw/goserve">GitHub</a> &middot; <a href="#cli">CLI Reference</a> &middot; <a href="https://github.com/staceyw/goserve/releases">All Releases</a></p>
     <p style="margin-top:8px">MIT License</p>
   </div>
 
@@ -236,7 +236,7 @@ function copyCmd(btn){
     setTimeout(function(){btn.textContent='Copy';btn.classList.remove('copied')},1500)
   })
 }
-fetch('https://api.github.com/repos/staceyw/GoServe/releases/latest')
+fetch('https://api.github.com/repos/staceyw/goserve/releases/latest')
   .then(function(r){return r.json()})
   .then(function(d){if(d.tag_name)document.getElementById('latest-ver').textContent='— '+d.tag_name})
   .catch(function(){})

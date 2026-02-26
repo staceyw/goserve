@@ -787,7 +787,7 @@ const htmlTemplate = `<!DOCTYPE html>
                 
                 <h3 style="color: var(--accent); margin-bottom: 10px;">🔗 Links</h3>
                 <p style="color: var(--text-secondary);">
-                    <a href="https://github.com/staceyw/GoServe" target="_blank" style="color: var(--accent); text-decoration: none;">📦 GitHub Repository</a><br>
+                    <a href="https://github.com/staceyw/goserve" target="_blank" style="color: var(--accent); text-decoration: none;">📦 GitHub Repository</a><br>
                     <span style="color: var(--text-secondary); font-size: 0.9em; opacity: 0.7;">MIT License • Built with Go 1.25+</span>
                 </p>
             </div>

@@ -28,10 +28,10 @@
 
 ```bash
 # Linux / macOS
-curl -fsSL https://raw.githubusercontent.com/staceyw/GoServe/main/scripts/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/staceyw/goserve/main/scripts/install.sh | bash
 ```
 
 ```powershell
 # Windows
-iex (irm https://raw.githubusercontent.com/staceyw/GoServe/main/scripts/install.ps1)
+iex (irm https://raw.githubusercontent.com/staceyw/goserve/main/scripts/install.ps1)
 ```

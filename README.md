@@ -2,7 +2,7 @@
 
 A lightweight, feature-rich HTTP file server written in Go with WebDAV support. Single binary, 12 themes, no dependencies. Repatriate your Cloud Drives. 
 
-# ![screenshot](docs/screenshot.svg)
+![screenshot](docs/screenshot.svg)
 
 ## Features
 

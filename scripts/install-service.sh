@@ -72,9 +72,13 @@ if [ ! -r "$SERVE_DIR" ]; then
   exit 1
 fi
 
-# Listen address
-prompt "Listen address [:8080]: "
-LISTEN="${REPLY:-:8080}"
+# Port
+prompt "Port [8080]: "
+PORT="${REPLY:-8080}"
+case "$PORT" in
+  *[!0-9]*) echo "Error: Port must be a number."; exit 1 ;;
+esac
+LISTEN=":$PORT"
 
 # Permission level
 prompt "Permission level (readonly/readwrite/all) [all]: "
@@ -106,7 +110,7 @@ echo ""
 echo "Configuration:"
 echo "  Binary:      $BIN_PATH"
 echo "  Directory:   $SERVE_DIR"
-echo "  Listen:      $LISTEN"
+echo "  Port:        $PORT"
 echo "  Permissions: $PERMLEVEL"
 echo "  Run as:      $RUN_USER"
 echo ""
@@ -168,5 +172,5 @@ echo ""
 echo "To change settings, edit $SERVICE_FILE then:"
 echo "  sudo systemctl daemon-reload && sudo systemctl restart goserve"
 echo ""
-echo "  http://$(hostname):${LISTEN#*:}"
+echo "  http://$(hostname):${PORT}"
 echo ""

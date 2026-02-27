@@ -1,0 +1,2 @@
+scripts/*.ps1 linguist-vendored
+scripts/*.sh linguist-vendored

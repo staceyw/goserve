@@ -41,7 +41,7 @@ try {
         $env:GOARCH = $t.GOARCH
         $out = Join-Path $dist $t.Out
         Write-Host "  $($t.GOOS)/$($t.GOARCH) -> $($t.Out)"
-        go build -ldflags "-s -w" -o $out .
+        go build -ldflags "-s -w -X main.version=$Tag" -o $out .
         if ($LASTEXITCODE -ne 0) { throw "Build failed for $($t.GOOS)/$($t.GOARCH)" }
     }
 } finally {
@@ -75,7 +75,7 @@ Flags
   -permlevel   Permission level: readonly, readwrite, all (default readonly)
   -maxsize     Max upload size in MB (default 100)
   -logins      Path to authentication file
-  -quiet       Suppress request logs
+  -verbose     Log every HTTP request to the console
 
 Permission Levels
 -----------------

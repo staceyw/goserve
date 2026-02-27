@@ -21,6 +21,8 @@ import (
 	"golang.org/x/net/webdav"
 )
 
+var version = "dev"
+
 type FileInfo struct {
 	Name       string
 	Path       string
@@ -40,6 +42,7 @@ type PageData struct {
 	Breadcrumbs []Breadcrumb
 	CanUpload   bool
 	CanModify   bool
+	Version     string
 }
 
 type Breadcrumb struct {
@@ -172,13 +175,13 @@ const htmlTemplate = `<!DOCTYPE html>
         }
         [data-theme="monokai-dimmed"] {
             --bg-primary: #1e1e1e;
-            --bg-secondary: #353535;
+            --bg-secondary: #272727;
 
             --text-primary: #c5c8c6;
-            --text-secondary: #949494;
-            --border-color: #505050;
-            --hover-bg: #444444;
-            --accent: #e58520;
+            --text-secondary: #b0b0b0;
+            --border-color: #303030;
+            --hover-bg: #383838;
+            --accent: #707070;
         }
         [data-theme="abyss"] {
             --bg-primary: #000c18;
@@ -215,15 +218,16 @@ const htmlTemplate = `<!DOCTYPE html>
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             background: var(--bg-primary);
             color: var(--text-primary);
-            padding: 20px;
+            margin: 0;
+            height: 100vh;
+            overflow: hidden;
             transition: background 0.3s, color 0.3s;
         }
         .container {
-            max-width: 1200px;
-            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
             background: var(--bg-secondary);
-            border-radius: 8px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
             overflow: hidden;
         }
         header {
@@ -324,7 +328,7 @@ const htmlTemplate = `<!DOCTYPE html>
             font-size: 13px;
         }
         .btn-primary {
-            background: var(--hover-bg);
+            background: var(--bg-secondary);
             border: 1px solid var(--border-color);
             color: var(--accent);
             padding: 8px 16px;
@@ -334,11 +338,11 @@ const htmlTemplate = `<!DOCTYPE html>
             font-weight: 500;
             transition: all 0.2s;
         }
-        .btn-primary:hover { background: var(--border-color); }
+        .btn-primary:hover { background: var(--hover-bg); border-color: var(--accent); }
         .btn-secondary {
             background: var(--bg-secondary);
             border: 1px solid var(--border-color);
-            color: var(--text-primary);
+            color: var(--accent);
             padding: 8px 16px;
             border-radius: 4px;
             cursor: pointer;
@@ -486,9 +490,17 @@ const htmlTemplate = `<!DOCTYPE html>
             width: 100%;
             border-collapse: collapse;
         }
+        .table-container {
+            flex: 1;
+            overflow-y: auto;
+            min-height: 0;
+        }
         thead {
             background: var(--hover-bg);
             border-bottom: 2px solid var(--border-color);
+            position: sticky;
+            top: 0;
+            z-index: 5;
         }
         th {
             text-align: left;
@@ -531,19 +543,70 @@ const htmlTemplate = `<!DOCTYPE html>
         .name { font-weight: 500; }
         .size, .modified { color: var(--text-secondary); font-size: 14px; }
         footer {
-            padding: 20px;
-            text-align: center;
+            padding: 4px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
             color: var(--text-secondary);
-            font-size: 13px;
+            font-size: 12px;
             border-top: 1px solid var(--border-color);
+            background: var(--bg-secondary);
+            flex-shrink: 0;
+            position: relative;
         }
-        .footer-link {
-            color: var(--accent);
-            text-decoration: none;
-            font-weight: 600;
+        .footer-left { display: flex; align-items: center; gap: 8px; }
+        .footer-right { display: flex; align-items: center; gap: 12px; }
+        .footer-btn {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            padding: 4px;
+            display: flex;
+            align-items: center;
+            border-radius: 4px;
+        }
+        .footer-btn:hover { color: var(--text-primary); background: var(--hover-bg); }
+        .footer-menu {
+            display: none;
+            position: absolute;
+            bottom: 100%;
+            left: 8px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            box-shadow: 0 -4px 16px rgba(0,0,0,0.2);
+            min-width: 200px;
+            padding: 6px 0;
+            z-index: 100;
+            margin-bottom: 4px;
+        }
+        .footer-menu.active { display: block; }
+        .footer-menu-item {
+            padding: 8px 14px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+            font-size: 13px;
+            color: var(--text-primary);
+            border: none;
+            background: none;
+            width: 100%;
+            text-align: left;
+        }
+        .footer-menu-item:hover { background: var(--hover-bg); }
+        .footer-menu-item select {
+            flex: 1;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            padding: 4px 8px;
+            font-size: 12px;
             cursor: pointer;
         }
-        .footer-link:hover { text-decoration: underline; }
+        .footer-menu-separator { height: 1px; background: var(--border-color); margin: 4px 0; }
         .preview-modal {
             display: none;
             position: fixed;
@@ -601,21 +664,8 @@ const htmlTemplate = `<!DOCTYPE html>
                 <path d="M24 20 L24 28 M24 20 L22 22 M24 20 L26 22" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" fill="none"/>
             </svg>
             <span class="title">Go<span class="accent">Serve</span></span>
+            <span style="font-size: 11px; color: var(--text-secondary); margin-left: 2px;">{{.Version}}</span>
             <input type="text" class="search-box" id="searchBox" placeholder="⌕ Search..." onkeyup="filterFiles()">
-            <select id="themeSelect" class="btn" onchange="changeTheme(this.value)" style="cursor:pointer;">
-                <option value="light">Catppuccin Latte</option>
-                <option value="catppuccin-mocha">Catppuccin Mocha</option>
-                <option value="dracula">Dracula</option>
-                <option value="nord">Nord</option>
-                <option value="solarized-dark">Solarized Dark</option>
-                <option value="solarized-light">Solarized Light</option>
-                <option value="one-dark">One Dark</option>
-                <option value="gruvbox">Gruvbox</option>
-                <option value="monokai-dimmed">Monokai Dimmed</option>
-                <option value="abyss">Abyss</option>
-                <option value="github-light">GitHub Light</option>
-                <option value="ibm-3278">IBM 3278 Retro</option>
-            </select>
         </header>
 
         <div class="toolbar" id="toolbar">
@@ -667,6 +717,7 @@ const htmlTemplate = `<!DOCTYPE html>
             {{end}}
         </div>
 
+        <div class="table-container">
         <table id="fileTable">
             <thead>
                 <tr>
@@ -690,51 +741,77 @@ const htmlTemplate = `<!DOCTYPE html>
                 {{end}}
             </tbody>
         </table>
+        </div>
 
-        <footer><a href="#" onclick="showAbout(); return false;" class="footer-link">GoServe</a> - Simple File Server</footer>
+        <footer>
+            <div class="footer-left">
+                <button class="footer-btn" onclick="toggleFooterMenu(event)" title="Settings">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 008.7 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.6 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 8.7a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.6a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+                </button>
+                <div id="footerMenu" class="footer-menu" onclick="event.stopPropagation()">
+                    <div class="footer-menu-item">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+                        <select id="themeSelect" onchange="changeTheme(this.value)">
+                            <option value="light">Catppuccin Latte</option>
+                            <option value="catppuccin-mocha">Catppuccin Mocha</option>
+                            <option value="dracula">Dracula</option>
+                            <option value="nord">Nord</option>
+                            <option value="solarized-dark">Solarized Dark</option>
+                            <option value="solarized-light">Solarized Light</option>
+                            <option value="one-dark">One Dark</option>
+                            <option value="gruvbox">Gruvbox</option>
+                            <option value="monokai-dimmed">Monokai Dimmed</option>
+                            <option value="abyss">Abyss</option>
+                            <option value="github-light">GitHub Light</option>
+                            <option value="ibm-3278">IBM 3278 Retro</option>
+                        </select>
+                    </div>
+                    <div class="footer-menu-separator"></div>
+                    <button class="footer-menu-item" onclick="showAbout(); closeFooterMenu();">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+                        About
+                    </button>
+                </div>
+            </div>
+            <div class="footer-right">
+                <span id="itemCount">Items: {{len .Files}}</span>
+            </div>
+        </footer>
     </div>
 
     <div id="previewModal" class="preview-modal" onclick="closePreview()">
         <div class="preview-content" onclick="event.stopPropagation()">
-            <span class="preview-close" onclick="closePreview()">&times;</span>
             <div id="previewBody"></div>
         </div>
     </div>
 
     <div id="editorModal" class="preview-modal" onclick="closeEditor()">
-        <div class="preview-content" onclick="event.stopPropagation()" style="max-width: 90%; max-height: 90%;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; padding: 10px; background: var(--hover-bg); border-radius: 4px;">
+        <div class="preview-content" onclick="event.stopPropagation()" style="max-width: 90%; max-height: 90%; display: flex; flex-direction: column; overflow: hidden;">
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px; background: var(--hover-bg); border-radius: 4px; flex-shrink: 0;">
                 <span id="editorFileName" style="font-weight: 600; color: var(--text-primary);"></span>
                 <div>
-                    <button class="btn-primary" onclick="saveFile()" style="margin-right: 10px;">💾 Save</button>
-                    <button class="btn-secondary" onclick="closeEditor()">Cancel</button>
+                    <button class="btn-primary" onclick="saveFile()" style="margin-right: 10px; display: inline-flex; align-items: center; gap: 6px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>Save</button>
+                    <button class="btn-secondary" onclick="closeEditor()" style="display: inline-flex; align-items: center; gap: 6px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>Cancel</button>
                 </div>
             </div>
-            <textarea id="editor"></textarea>
+            <textarea id="editor" style="flex: 1; min-height: 0; margin-top: 10px; resize: none;"></textarea>
         </div>
     </div>
 
-    <div id="aboutModal" class="preview-modal" onclick="closeAbout()">
-        <div class="preview-content" onclick="event.stopPropagation()" style="max-width: 600px;">
-            <span class="preview-close" onclick="closeAbout()">&times;</span>
-            <div id="aboutBody" style="padding: 20px;">
-                <div style="text-align: center; margin-bottom: 20px;">
-                    <svg id="aboutLogo" width="80" height="80" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
-                        <defs>
-                            <linearGradient id="aboutGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                                <stop offset="0%" style="stop-color:#00ADD8;stop-opacity:1" />
-                                <stop offset="100%" style="stop-color:#5DC9E2;stop-opacity:1" />
-                            </linearGradient>
-                        </defs>
-                        <path d="M8 24 Q16 12, 24 24 T40 24" stroke="url(#aboutGrad)" stroke-width="4" fill="none" stroke-linecap="round" opacity="0.7"/>
-                        <path d="M8 30 Q16 20, 24 30 T40 30" stroke="url(#aboutGrad)" stroke-width="4" fill="none" stroke-linecap="round" opacity="0.5"/>
-                        <circle cx="24" cy="24" r="8" fill="url(#aboutGrad)"/>
-                        <circle cx="24" cy="24" r="5" fill="#ffffff" id="aboutLogoCenter"/>
-                        <path d="M24 20 L24 28 M24 20 L22 22 M24 20 L26 22" stroke="url(#aboutGrad)" stroke-width="2" stroke-linecap="round" fill="none"/>
+    <div id="aboutModal" class="preview-modal" onclick="closeAbout()" style="padding-top: 10px;">
+        <div class="preview-content" onclick="event.stopPropagation()" style="max-width: 600px; padding-top: 16px;">
+            <div id="aboutBody" style="padding: 0 20px 20px;">
+                <div style="display: inline-flex; align-items: center; gap: 10px; margin-bottom: 12px;">
+                    <svg width="36" height="36" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M8 24 Q16 12, 24 24 T40 24" stroke="var(--accent)" stroke-width="4" fill="none" stroke-linecap="round" opacity="0.7"/>
+                        <path d="M8 30 Q16 20, 24 30 T40 30" stroke="var(--accent)" stroke-width="4" fill="none" stroke-linecap="round" opacity="0.5"/>
+                        <circle cx="24" cy="24" r="8" fill="var(--accent)"/>
+                        <circle cx="24" cy="24" r="5" fill="var(--bg-secondary)"/>
+                        <path d="M24 20 L24 28 M24 20 L22 22 M24 20 L26 22" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" fill="none"/>
                     </svg>
+                    <span class="title">Go<span class="accent">Serve</span></span>
                 </div>
-                <h2 style="margin-top: 0; color: var(--accent); text-align: center;">GoServe</h2>
-                <p style="color: var(--text-secondary); margin-bottom: 20px; text-align: center;">Lightweight HTTP file server with WebDAV support</p>
+                <p style="color: var(--text-secondary); margin-bottom: 20px;">Lightweight HTTP file server with WebDAV support</p>
                 
                 <h3 style="color: var(--accent); margin-bottom: 10px;">✨ Features</h3>
                 <ul style="color: var(--text-secondary); line-height: 1.8; margin-bottom: 20px;">
@@ -957,6 +1034,14 @@ const htmlTemplate = `<!DOCTYPE html>
                     rows[i].style.display = matches ? '' : 'none';
                 }
             }
+            updateItemCount();
+        }
+
+        function updateItemCount() {
+            var rows = document.querySelectorAll('#fileTable tbody tr');
+            var visible = 0;
+            rows.forEach(function(r) { if (r.style.display !== 'none') visible++; });
+            document.getElementById('itemCount').textContent = 'Items: ' + visible;
         }
 
         // Sort table
@@ -1245,7 +1330,7 @@ const htmlTemplate = `<!DOCTYPE html>
                         .then(text => { document.getElementById('previewBody').innerHTML = '<pre>' + escapeHtml(text) + '</pre>'; document.getElementById('previewModal').style.display = 'block'; })
                         .catch(err => showAlert('Error: ' + err));
                 } else {
-                    window.location.href = path;
+                    window.open(path, '_blank');
                 }
             }
         }
@@ -1302,6 +1387,18 @@ const htmlTemplate = `<!DOCTYPE html>
             if (document.querySelector('.preview-modal[style*="display: block"]')) return;
             if (document.getElementById('dialogOverlay').classList.contains('active')) return;
 
+            if (e.key === 'ArrowLeft') {
+                e.preventDefault();
+                navigateUp();
+                return;
+            }
+
+            if (e.key === 'Delete' && selectedRows.length > 0) {
+                e.preventDefault();
+                ctxDeleteSelected();
+                return;
+            }
+
             var visible = getVisibleRows();
             if (visible.length === 0) return;
 
@@ -1350,9 +1447,6 @@ const htmlTemplate = `<!DOCTYPE html>
                     e.preventDefault();
                     window.location.href = lastSelectedRow.dataset.path;
                 }
-            } else if (e.key === 'ArrowLeft') {
-                e.preventDefault();
-                navigateUp();
             } else if (e.key === 'Enter') {
                 if (lastSelectedRow) {
                     e.preventDefault();
@@ -1367,9 +1461,20 @@ const htmlTemplate = `<!DOCTYPE html>
             }
         });
 
+        // Footer menu
+        function toggleFooterMenu(e) {
+            e.stopPropagation();
+            var menu = document.getElementById('footerMenu');
+            menu.classList.toggle('active');
+        }
+        function closeFooterMenu() {
+            document.getElementById('footerMenu').classList.remove('active');
+        }
+
         // Context menus
         function hideAllMenus() {
             document.querySelectorAll('.context-menu').forEach(m => m.classList.remove('show'));
+            closeFooterMenu();
         }
 
         function showMenuAt(menu, x, y) {
@@ -1792,10 +1897,10 @@ func gzipMiddleware(next http.HandlerFunc) http.HandlerFunc {
 	}
 }
 
-func dirHandler(baseDir string, tmpl *template.Template, quiet bool) http.HandlerFunc {
+func dirHandler(baseDir string, tmpl *template.Template, verbose bool) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// Log request
-		if !quiet {
+		if verbose {
 			fmt.Printf("[%s] %s %s\n", r.Method, r.RemoteAddr, r.URL.Path)
 		}
 
@@ -1974,6 +2079,7 @@ func dirHandler(baseDir string, tmpl *template.Template, quiet bool) http.Handle
 			Breadcrumbs: buildBreadcrumbs(r.URL.Path),
 			CanUpload:   canUpload,
 			CanModify:   canModify,
+			Version:     version,
 		}
 
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
@@ -2337,8 +2443,8 @@ func main() {
 		fmt.Fprintf(os.Stderr, "    go run main.go -permlevel all\n\n")
 		fmt.Fprintf(os.Stderr, "  Per-user authentication:\n")
 		fmt.Fprintf(os.Stderr, "    go run main.go -logins logins.txt\n\n")
-		fmt.Fprintf(os.Stderr, "  Quiet mode (no request logs):\n")
-		fmt.Fprintf(os.Stderr, "    go run main.go -quiet\n\n")
+		fmt.Fprintf(os.Stderr, "  Verbose mode (log every request):\n")
+		fmt.Fprintf(os.Stderr, "    go run main.go -verbose\n\n")
 		fmt.Fprintf(os.Stderr, "  Combined example:\n")
 		fmt.Fprintf(os.Stderr, "    go run main.go -listen :8000 -dir /var/www -permlevel all\n\n")
 		fmt.Fprintf(os.Stderr, "TAILSCALE SHARING:\n")
@@ -2354,7 +2460,7 @@ func main() {
 	var listenAddrs stringSlice
 	flag.Var(&listenAddrs, "listen", "Address to listen on in host:port format (repeatable, default :8080)")
 	dir := flag.String("dir", ".", "Directory to serve")
-	quiet := flag.Bool("quiet", false, "Quiet mode - only show errors")
+	verbose := flag.Bool("verbose", false, "Log every HTTP request to the console")
 	permLevel := flag.String("permlevel", "readonly", "Permission level: readonly, readwrite, all")
 	maxSize := flag.Int64("maxsize", 100, "Max upload size in MB")
 	loginFile := flag.String("logins", "", "Enable authentication with login file (format: username:password:permission)")
@@ -2412,7 +2518,7 @@ func main() {
 		FileSystem: webdav.Dir(absPath),
 		LockSystem: webdav.NewMemLS(),
 		Logger: func(r *http.Request, err error) {
-			if err != nil && !*quiet {
+			if err != nil {
 				log.Printf("WebDAV: %s %s - %v", r.Method, r.URL.Path, err)
 			}
 		},
@@ -2435,7 +2541,7 @@ func main() {
 	}
 
 	// Setup handler with authentication and GZIP
-	handler := dirHandler(absPath, tmpl, *quiet)
+	handler := dirHandler(absPath, tmpl, *verbose)
 	if requireAuth {
 		handler = authMiddleware(handler)
 	}
@@ -2463,11 +2569,17 @@ func main() {
 	}
 
 	// Display startup info
-	fmt.Println("╔════════════════════════════════════════╗")
-	fmt.Println("║              GoServe               ║")
-	fmt.Println("╚════════════════════════════════════════╝")
-	fmt.Printf("\n📂 Serving: %s\n", absPath)
+	fmt.Printf("\nGoServe %s\n", version)
+	fmt.Printf("📂 Serving: %s\n", absPath)
 	fmt.Printf("⏰ Started: %s\n", time.Now().Format("2006-01-02 15:04:05"))
+
+	fmt.Printf("\n⚙️  Permissions: %s\n", *permLevel)
+	if requireAuth {
+		fmt.Printf("   Auth: %d users\n", len(users))
+	}
+	if allowUpload {
+		fmt.Printf("   Max upload size: %dMB\n", *maxSize)
+	}
 
 	fmt.Println("\n🌐 Listeners:")
 	var wildcardPorts []string
@@ -2503,22 +2615,8 @@ func main() {
 		}
 	}
 
-	fmt.Println("\n⚙️  Features:")
-	fmt.Printf("   ✓ Permission level: %s\n", *permLevel)
-	if requireAuth {
-		fmt.Printf("   ✓ Authentication enabled (%d users)\n", len(users))
-	}
-	if allowUpload {
-		fmt.Printf("   ✓ Max upload size: %dMB\n", *maxSize)
-	}
-	fmt.Println("   ✓ GZIP compression")
-	fmt.Println("   ✓ ZIP download")
-	fmt.Println("   ✓ Dark mode")
-	fmt.Println("   ✓ File preview")
-	fmt.Println("   ✓ Search/filter")
-
 	fmt.Println("\n💡 Press Ctrl+C to stop")
-	fmt.Println("════════════════════════════════════════\n")
+	fmt.Println()
 
 	// Start server on all listeners
 	errc := make(chan error, 1)

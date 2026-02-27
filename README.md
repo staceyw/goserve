@@ -18,7 +18,7 @@ A lightweight, feature-rich HTTP file server written in Go with WebDAV support. 
 - **Authentication** — Optional per-user auth with permission levels
 - **Single binary** — All HTML, CSS, and JS embedded. ~8 MB, cross-platform
 
-## Install
+## Install 
 
 **Linux / macOS:**
 ```bash

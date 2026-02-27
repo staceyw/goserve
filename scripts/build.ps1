@@ -1,4 +1,5 @@
 # Dev build script for goserve
+#
 Push-Location (Split-Path $PSScriptRoot -Parent)
 Write-Host "Building goserve..." -ForegroundColor Cyan
 go build -ldflags="-s -w -X main.version=dev" -o goserve.exe main.go

@@ -3,6 +3,7 @@ package main
 import (
 	"archive/zip"
 	"compress/gzip"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"html/template"
@@ -15,6 +16,7 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/russross/blackfriday/v2"
@@ -22,6 +24,31 @@ import (
 )
 
 var version = "dev"
+
+// Shared mutable base directory (changed via :command in search box)
+var (
+	currentBaseDir string
+	baseDirMu      sync.RWMutex
+)
+
+// isUnderDir checks if fullPath is equal to or under baseDir.
+// Handles drive roots like C:\ where baseDir already ends with a separator.
+func isUnderDir(fullPath, baseDir string) bool {
+	base := strings.TrimRight(baseDir, string(filepath.Separator)) + string(filepath.Separator)
+	return strings.HasPrefix(fullPath+string(filepath.Separator), base)
+}
+
+func getBaseDir() string {
+	baseDirMu.RLock()
+	defer baseDirMu.RUnlock()
+	return currentBaseDir
+}
+
+func setBaseDir(dir string) {
+	baseDirMu.Lock()
+	defer baseDirMu.Unlock()
+	currentBaseDir = dir
+}
 
 type FileInfo struct {
 	Name       string
@@ -664,8 +691,7 @@ const htmlTemplate = `<!DOCTYPE html>
                 <path d="M24 20 L24 28 M24 20 L22 22 M24 20 L26 22" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" fill="none"/>
             </svg>
             <span class="title">Go<span class="accent">Serve</span></span>
-            <span style="font-size: 11px; color: var(--text-secondary); margin-left: 2px;">{{.Version}}</span>
-            <input type="text" class="search-box" id="searchBox" placeholder="⌕ Search..." onkeyup="filterFiles()">
+            <input type="text" class="search-box" id="searchBox" placeholder="⌕ Search  |  : command" onkeyup="filterFiles()" onkeydown="handleSearchKey(event)">
         </header>
 
         <div class="toolbar" id="toolbar">
@@ -810,6 +836,7 @@ const htmlTemplate = `<!DOCTYPE html>
                         <path d="M24 20 L24 28 M24 20 L22 22 M24 20 L26 22" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" fill="none"/>
                     </svg>
                     <span class="title">Go<span class="accent">Serve</span></span>
+                    <span style="font-size: 11px; color: var(--text-secondary); margin-left: 4px;">{{.Version}}</span>
                 </div>
                 <p style="color: var(--text-secondary); margin-bottom: 20px;">Lightweight HTTP file server with WebDAV support</p>
                 
@@ -996,6 +1023,14 @@ const htmlTemplate = `<!DOCTYPE html>
         function filterFiles() {
             const input = document.getElementById('searchBox');
             const filter = input.value;
+
+            // Command mode: ":" prefix stops filtering
+            if (filter.startsWith(':')) {
+                input.style.borderColor = 'var(--accent)';
+                return;
+            }
+            input.style.borderColor = '';
+
             const table = document.getElementById('fileTable');
             const rows = table.getElementsByTagName('tr');
             
@@ -1035,6 +1070,43 @@ const htmlTemplate = `<!DOCTYPE html>
                 }
             }
             updateItemCount();
+        }
+
+        function handleSearchKey(e) {
+            var input = document.getElementById('searchBox');
+            if (e.key === 'Enter' && input.value.startsWith(':')) {
+                e.preventDefault();
+                var cmd = input.value.substring(1).trim();
+                if (!cmd) return;
+                fetch('/_api/chdir', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({dir: cmd})
+                })
+                .then(function(r) { return r.json(); })
+                .then(function(d) {
+                    if (d.success) {
+                        window.location.href = '/';
+                    } else {
+                        input.style.borderColor = '#f38ba8';
+                        input.value = ':' + cmd + '  (' + d.error + ')';
+                        setTimeout(function() {
+                            input.value = ':' + cmd;
+                            input.style.borderColor = 'var(--accent)';
+                        }, 2000);
+                    }
+                })
+                .catch(function() {
+                    input.style.borderColor = '#f38ba8';
+                });
+                return;
+            }
+            if (e.key === 'Escape') {
+                input.value = '';
+                input.style.borderColor = '';
+                input.blur();
+                filterFiles();
+            }
         }
 
         function updateItemCount() {
@@ -1897,19 +1969,19 @@ func gzipMiddleware(next http.HandlerFunc) http.HandlerFunc {
 	}
 }
 
-func dirHandler(baseDir string, tmpl *template.Template, verbose bool) http.HandlerFunc {
+func dirHandler(tmpl *template.Template, verbose bool) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// Log request
 		if verbose {
 			fmt.Printf("[%s] %s %s\n", r.Method, r.RemoteAddr, r.URL.Path)
 		}
 
+		baseDir := getBaseDir()
 		urlPath := filepath.Clean(r.URL.Path)
 		fullPath := filepath.Join(baseDir, urlPath)
 
-		// Security check - use baseDir + separator to prevent prefix collision
-		// e.g., baseDir="/data" must not match "/database"
-		if !strings.HasPrefix(fullPath+string(filepath.Separator), baseDir+string(filepath.Separator)) {
+		// Security check - prevent path traversal outside baseDir
+		if !isUnderDir(fullPath, baseDir) {
 			http.Error(w, "Forbidden", http.StatusForbidden)
 			return
 		}
@@ -2171,7 +2243,7 @@ func handleDelete(w http.ResponseWriter, r *http.Request, baseDir string) {
 	path := r.URL.Query().Get("delete")
 	fullPath := filepath.Join(baseDir, path)
 
-	if !strings.HasPrefix(fullPath+string(filepath.Separator), baseDir+string(filepath.Separator)) {
+	if !isUnderDir(fullPath, baseDir) {
 		w.Header().Set("Content-Type", "application/json")
 		fmt.Fprintf(w, `{"success": false, "error": "Invalid path"}`)
 		return
@@ -2193,8 +2265,7 @@ func handleRename(w http.ResponseWriter, r *http.Request, baseDir string) {
 	oldFullPath := filepath.Join(baseDir, oldPath)
 	newFullPath := filepath.Join(filepath.Dir(oldFullPath), newName)
 
-	if !strings.HasPrefix(oldFullPath+string(filepath.Separator), baseDir+string(filepath.Separator)) ||
-		!strings.HasPrefix(newFullPath+string(filepath.Separator), baseDir+string(filepath.Separator)) {
+	if !isUnderDir(oldFullPath, baseDir) || !isUnderDir(newFullPath, baseDir) {
 		w.Header().Set("Content-Type", "application/json")
 		fmt.Fprintf(w, `{"success": false, "error": "Invalid path"}`)
 		return
@@ -2243,7 +2314,7 @@ func handleMkdir(w http.ResponseWriter, r *http.Request, parentDir string) {
 
 func handleEdit(w http.ResponseWriter, r *http.Request, fullPath, baseDir string) {
 	// Security check
-	if !strings.HasPrefix(fullPath+string(filepath.Separator), baseDir+string(filepath.Separator)) {
+	if !isUnderDir(fullPath, baseDir) {
 		w.Header().Set("Content-Type", "application/json")
 		fmt.Fprintf(w, `{"success": false, "error": "Invalid path"}`)
 		return
@@ -2345,7 +2416,7 @@ func handleMultiZipDownload(w http.ResponseWriter, r *http.Request, currentDir, 
 		fullPath := filepath.Join(currentDir, filepath.Base(fp))
 
 		// Security check
-		if !strings.HasPrefix(fullPath, baseDir) {
+		if !isUnderDir(fullPath, baseDir) {
 			continue
 		}
 
@@ -2541,11 +2612,45 @@ func main() {
 	}
 
 	// Setup handler with authentication and GZIP
-	handler := dirHandler(absPath, tmpl, *verbose)
+	setBaseDir(absPath)
+	handler := dirHandler(tmpl, *verbose)
 	if requireAuth {
 		handler = authMiddleware(handler)
 	}
 	http.HandleFunc("/", gzipMiddleware(handler))
+
+	// Change directory API
+	http.HandleFunc("/_api/chdir", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "POST" {
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+		var req struct {
+			Dir string `json:"dir"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			w.Header().Set("Content-Type", "application/json")
+			fmt.Fprintf(w, `{"success":false,"error":"Invalid request"}`)
+			return
+		}
+		newPath, err := filepath.Abs(req.Dir)
+		if err != nil {
+			w.Header().Set("Content-Type", "application/json")
+			fmt.Fprintf(w, `{"success":false,"error":"Invalid path"}`)
+			return
+		}
+		info, err := os.Stat(newPath)
+		if err != nil || !info.IsDir() {
+			w.Header().Set("Content-Type", "application/json")
+			fmt.Fprintf(w, `{"success":false,"error":"Directory does not exist"}`)
+			return
+		}
+		setBaseDir(newPath)
+		webdavHandler.FileSystem = webdav.Dir(newPath)
+		fmt.Printf("📂 Changed directory: %s\n", newPath)
+		w.Header().Set("Content-Type", "application/json")
+		fmt.Fprintf(w, `{"success":true,"dir":"%s"}`, strings.ReplaceAll(newPath, `\`, `\\`))
+	})
 
 	// Create listeners
 	var listeners []net.Listener

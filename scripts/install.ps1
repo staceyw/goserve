@@ -34,7 +34,7 @@ Write-Host "  Install to: $InstallDir\"
 Write-Host ""
 Write-Host "This will install into ${InstallDir}\:"
 Write-Host "  - goserve.exe  (binary)"
-Write-Host "  - README.txt"
+Write-Host "  - readme.txt"
 Write-Host ""
 
 # Prompt for confirmation
@@ -60,7 +60,7 @@ function Download-File($url, $dest) {
 Write-Host ""
 Download-File "$BaseURL/$Binary" (Join-Path $InstallDir "goserve.exe")
 
-# --- Generate README.txt ---------------------------------------------------
+# --- Generate readme.txt ---------------------------------------------------
 
 @"
 goserve - Lightweight HTTP File Server
@@ -133,8 +133,8 @@ To change startup flags, edit /etc/systemd/system/goserve.service then:
 More Info
 ---------
   https://github.com/staceyw/goserve
-"@ | Set-Content -Path (Join-Path $InstallDir "README.txt") -Encoding UTF8
-Write-Host "  README.txt"
+"@ | Set-Content -Path (Join-Path $InstallDir "readme.txt") -Encoding UTF8
+Write-Host "  readme.txt"
 
 # --- Done -------------------------------------------------------------------
 

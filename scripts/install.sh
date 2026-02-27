@@ -38,7 +38,7 @@ echo "  Install to: ${INSTALL_DIR}/"
 echo ""
 echo "This will install into ${INSTALL_DIR}/:"
 echo "  - goserve  (binary)"
-echo "  - README.txt"
+echo "  - readme.txt"
 echo ""
 
 # Check for curl or wget
@@ -81,9 +81,9 @@ download "${BASE_URL}/${BINARY}" "${INSTALL_DIR}/goserve"
 
 chmod +x "${INSTALL_DIR}/goserve"
 
-# --- Generate README.txt --------------------------------------------------
+# --- Generate readme.txt --------------------------------------------------
 
-cat > "${INSTALL_DIR}/README.txt" <<'README'
+cat > "${INSTALL_DIR}/readme.txt" <<'README'
 goserve - Lightweight HTTP File Server
 ======================================
 
@@ -155,7 +155,7 @@ More Info
 ---------
   https://github.com/staceyw/goserve
 README
-echo "  README.txt"
+echo "  readme.txt"
 
 # --- Done ------------------------------------------------------------------
 
